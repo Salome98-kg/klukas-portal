@@ -63,6 +63,33 @@ const DEFAULT_VAC_RECIPIENTS = [3,4,6];
 const STORAGE_KEY = "klukas_v3";
 const ROLES = ["GF","Bauleiter","Büro","Lagerist","Vorarbeiter","Monteur","Azubi"];
 
+// EmailJS
+const EMAILJS_PUBLIC = "LNWETx8iRbXRi2zvl";
+const EMAILJS_SERVICE = "service_pxg015l";
+const EMAILJS_TEMPLATE = "template_av4scen";
+
+async function sendEmail(vonName, vonRolle, meldungArt, anName, nachricht, betreff) {
+  try {
+    await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        service_id: EMAILJS_SERVICE,
+        template_id: EMAILJS_TEMPLATE,
+        user_id: EMAILJS_PUBLIC,
+        template_params: {
+          betreff: betreff,
+          von_name: vonName,
+          von_rolle: vonRolle,
+          meldung_art: meldungArt,
+          an_name: anName,
+          nachricht: nachricht,
+        }
+      })
+    });
+  } catch(e) { console.error("Email error:", e); }
+}
+
 function loadData() {
   try {
     const r = localStorage.getItem(STORAGE_KEY);
