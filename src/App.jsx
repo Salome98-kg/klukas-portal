@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
 function roleColor(role) {
-  return { GF:"#e11d48", Bauleiter:"#f59e0b", Büro:"#3b82f6", Lagerist:"#8b5cf6", Vorarbeiter:"#10b981", Monteur:"#6366f1", Azubi:"#6b7280" }[role] || "#6b7280";
+  return { GF:"#dc2626", Bauleiter:"#d97706", Büro:"#2563eb", Lagerist:"#7c3aed", Vorarbeiter:"#059669", Monteur:"#4f46e5", Azubi:"#6b7280" }[role] || "#6b7280";
 }
 function getInitials(name) {
   const p = name.split(", ");
@@ -10,7 +9,6 @@ function getInitials(name) {
 }
 function dateInRange(ds,from,to){return ds>=from&&ds<=to;}
 
-// ─── DEFAULT DATA ─────────────────────────────────────────────────────────────
 const DEFAULT_EMPLOYEES = [
   {id:1,  name:"Klukas, Ralf",       firstName:"Ralf",      role:"GF",          email:"ralf.klukas@klukas-gerueste.de",       lkwGross:true,  lkwKlein:false,pkw:true,  password:"ralf2024",      isAdmin:true },
   {id:2,  name:"Gulde, Thomas",       firstName:"Thomas",    role:"GF",          email:"thomas.gulde@klukas-gerueste.de",       lkwGross:false, lkwKlein:true, pkw:true,  password:"thomas2024",    isAdmin:true },
@@ -62,7 +60,7 @@ const DEFAULT_MELDUNGEN = [
 ];
 
 const DEFAULT_VAC_RECIPIENTS = [3,4,6];
-const STORAGE_KEY = "klukas_v2";
+const STORAGE_KEY = "klukas_v3";
 const ROLES = ["GF","Bauleiter","Büro","Lagerist","Vorarbeiter","Monteur","Azubi"];
 
 function loadData() {
@@ -96,17 +94,33 @@ function checkConflict(from,to,emp,data){
 }
 
 // ─── STYLES ───────────────────────────────────────────────────────────────────
-const S={
-  page:{minHeight:"100vh",background:"#0d0f18",fontFamily:"'DM Sans','Segoe UI',sans-serif",color:"#e8eaf0",display:"flex",flexDirection:"column"},
-  card:{background:"#14161f",border:"1px solid #1e2130",borderRadius:14,padding:16},
-  input:{width:"100%",background:"#0d0f18",border:"1px solid #1e2130",borderRadius:8,padding:"10px 12px",color:"#e8eaf0",fontSize:13,boxSizing:"border-box",outline:"none",fontFamily:"inherit"},
-  btn:{background:"linear-gradient(135deg,#e11d48,#be123c)",border:"none",borderRadius:10,padding:"13px",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",width:"100%",transition:"all 0.15s"},
-  btnGhost:{background:"none",border:"1px solid #1e2130",borderRadius:8,padding:"7px 12px",color:"#6b7280",fontSize:12,cursor:"pointer"},
-  back:{background:"none",border:"none",color:"#e11d48",cursor:"pointer",fontSize:13,padding:"0 0 14px 0",display:"flex",alignItems:"center",gap:4},
-  label:{fontSize:9,color:"#4b5563",marginBottom:5,fontWeight:700,letterSpacing:"1px",display:"block"},
+const C = {
+  bg: "#f3f4f6",
+  white: "#ffffff",
+  border: "#e5e7eb",
+  borderDark: "#d1d5db",
+  text: "#111827",
+  textMid: "#374151",
+  textLight: "#6b7280",
+  red: "#dc2626",
+  redLight: "#fef2f2",
+  redBorder: "#fca5a5",
+  green: "#16a34a",
+  greenLight: "#f0fdf4",
+  greenBorder: "#86efac",
+  amber: "#d97706",
 };
 
-// ─── LOGO ─────────────────────────────────────────────────────────────────────
+const S = {
+  page: {minHeight:"100vh",background:C.bg,fontFamily:"'DM Sans','Segoe UI',sans-serif",color:C.text,display:"flex",flexDirection:"column"},
+  card: {background:C.white,border:`1px solid ${C.border}`,borderRadius:12,padding:16,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"},
+  input: {width:"100%",background:C.white,border:`1px solid ${C.borderDark}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,boxSizing:"border-box",outline:"none",fontFamily:"inherit"},
+  btn: {background:"linear-gradient(135deg,#dc2626,#b91c1c)",border:"none",borderRadius:10,padding:"13px",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",width:"100%",transition:"all 0.15s"},
+  btnGhost: {background:"none",border:`1px solid ${C.border}`,borderRadius:8,padding:"7px 12px",color:C.textLight,fontSize:12,cursor:"pointer"},
+  back: {background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:13,padding:"0 0 14px 0",display:"flex",alignItems:"center",gap:4},
+  label: {fontSize:10,color:C.textLight,marginBottom:5,fontWeight:700,letterSpacing:"0.5px",display:"block",textTransform:"uppercase"},
+};
+
 function Logo({size=1}){
   return (
     <div style={{display:"flex",alignItems:"center",gap:6*size}}>
@@ -124,13 +138,12 @@ function Logo({size=1}){
     </div>
   );
 }
-// ─── AVATAR ───────────────────────────────────────────────────────────────────
+
 function Avatar({emp,size=36}){
   const c=roleColor(emp.role);
-  return <div style={{width:size,height:size,borderRadius:"50%",background:c+"22",border:`2px solid ${c}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.3,fontWeight:700,color:c,flexShrink:0}}>{getInitials(emp.name)}</div>;
+  return <div style={{width:size,height:size,borderRadius:"50%",background:c+"18",border:`2px solid ${c}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.3,fontWeight:700,color:c,flexShrink:0}}>{getInitials(emp.name)}</div>;
 }
 
-// ─── LOGIN ────────────────────────────────────────────────────────────────────
 function Login({employees,onLogin}){
   const [search,setSearch]=useState("");
   const [sel,setSel]=useState(null);
@@ -139,46 +152,45 @@ function Login({employees,onLogin}){
   const filtered=employees.filter(e=>search.length>1&&e.name.toLowerCase().includes(search.toLowerCase()));
   function doLogin(){if(pw===sel.password){onLogin(sel);}else{setErr("Falsches Passwort. Bitte erneut versuchen.");}}
   return (
-    <div style={{minHeight:"100vh",background:"#0d0f18",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'DM Sans','Segoe UI',sans-serif"}}>
-      <div style={{textAlign:"center",marginBottom:32}}>
-        <Logo size={1.4}/>
-      </div>
-      <div style={{width:"100%",maxWidth:360,...S.card,padding:24}}>
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'DM Sans','Segoe UI',sans-serif"}}>
+      <div style={{textAlign:"center",marginBottom:32}}><Logo size={1.3}/></div>
+      <div style={{width:"100%",maxWidth:380,...S.card,padding:28}}>
         {!sel ? (
           <>
-            <div style={{fontSize:15,fontWeight:700,marginBottom:4}}>Anmelden</div>
-            <div style={{fontSize:12,color:"#4b5563",marginBottom:14}}>Namen eingeben zum Suchen</div>
+            <div style={{fontSize:16,fontWeight:700,marginBottom:4,color:C.text}}>Anmelden</div>
+            <div style={{fontSize:12,color:C.textLight,marginBottom:16}}>Namen eingeben zum Suchen</div>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="z.B. Müller..." autoFocus style={S.input}/>
             {filtered.length>0&&<div style={{marginTop:8,display:"flex",flexDirection:"column",gap:4}}>
               {filtered.map(emp=>(
-                <button key={emp.id} onClick={()=>{setSel(emp);setPw("");setErr("");}} style={{background:"#0d0f18",border:"1px solid #1e2130",borderRadius:8,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",textAlign:"left",transition:"border-color 0.15s"}}
-                  onMouseOver={e=>e.currentTarget.style.borderColor="#e11d48"} onMouseOut={e=>e.currentTarget.style.borderColor="#1e2130"}>
-                  <Avatar emp={emp} size={34}/><div><div style={{fontSize:13,fontWeight:600,color:"#e8eaf0"}}>{emp.name}</div><div style={{fontSize:11,color:roleColor(emp.role)}}>{emp.role}</div></div>
+                <button key={emp.id} onClick={()=>{setSel(emp);setPw("");setErr("");}} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",textAlign:"left",transition:"border-color 0.15s",boxShadow:"0 1px 2px rgba(0,0,0,0.04)"}}
+                  onMouseOver={e=>e.currentTarget.style.borderColor=C.red} onMouseOut={e=>e.currentTarget.style.borderColor=C.border}>
+                  <Avatar emp={emp} size={34}/>
+                  <div><div style={{fontSize:13,fontWeight:600,color:C.text}}>{emp.name}</div><div style={{fontSize:11,color:roleColor(emp.role)}}>{emp.role}</div></div>
                 </button>
               ))}
             </div>}
-            {search.length>1&&filtered.length===0&&<div style={{marginTop:8,fontSize:12,color:"#4b5563",textAlign:"center"}}>Kein Mitarbeiter gefunden</div>}
+            {search.length>1&&filtered.length===0&&<div style={{marginTop:8,fontSize:12,color:C.textLight,textAlign:"center"}}>Kein Mitarbeiter gefunden</div>}
           </>
         ):(
           <>
             <button onClick={()=>setSel(null)} style={S.back}>‹ Zurück</button>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18,background:"#0d0f18",borderRadius:10,padding:"10px 12px"}}>
-              <Avatar emp={sel} size={38}/><div><div style={{fontSize:13,fontWeight:700}}>{sel.name}</div><div style={{fontSize:11,color:roleColor(sel.role)}}>{sel.role}</div></div>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18,background:C.bg,borderRadius:10,padding:"10px 12px",border:`1px solid ${C.border}`}}>
+              <Avatar emp={sel} size={38}/>
+              <div><div style={{fontSize:13,fontWeight:700,color:C.text}}>{sel.name}</div><div style={{fontSize:11,color:roleColor(sel.role)}}>{sel.role}</div></div>
             </div>
-            <label style={S.label}>PASSWORT</label>
+            <label style={S.label}>Passwort</label>
             <input type="password" value={pw} onChange={e=>{setPw(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&doLogin()} placeholder="••••••••" autoFocus
-              style={{...S.input,border:`1px solid ${err?"#e11d48":"#1e2130"}`,letterSpacing:"2px"}}/>
-            {err&&<div style={{fontSize:11,color:"#e11d48",marginTop:6}}>{err}</div>}
-            <button onClick={doLogin} style={{...S.btn,marginTop:12,background:pw?"linear-gradient(135deg,#e11d48,#be123c)":"#1e2130",color:pw?"#fff":"#374151",cursor:pw?"pointer":"not-allowed"}}>Anmelden ›</button>
+              style={{...S.input,border:`1px solid ${err?C.red:C.borderDark}`,letterSpacing:"2px"}}/>
+            {err&&<div style={{fontSize:11,color:C.red,marginTop:6}}>{err}</div>}
+            <button onClick={doLogin} style={{...S.btn,marginTop:12,background:pw?"linear-gradient(135deg,#dc2626,#b91c1c)":"#e5e7eb",color:pw?"#fff":C.textLight,cursor:pw?"pointer":"not-allowed"}}>Anmelden ›</button>
           </>
         )}
       </div>
-      <div style={{marginTop:14,fontSize:10,color:"#1e2130"}}>Wir helfen aufzubauen!</div>
+      <div style={{marginTop:16,fontSize:10,color:C.textLight}}>Wir helfen aufzubauen!</div>
     </div>
   );
 }
 
-// ─── CALENDAR ─────────────────────────────────────────────────────────────────
 function Calendar({year,month,onChangeMonth,vacFrom,vacTo,conflict,user,data}){
   const allVacs=getAllVacs(data);
   const days=new Date(year,month+1,0).getDate();
@@ -190,31 +202,32 @@ function Calendar({year,month,onChangeMonth,vacFrom,vacTo,conflict,user,data}){
     const busy=allVacs.some(v=>v.employeeId!==user.id&&dateInRange(ds,v.from,v.to));
     const blk=(data.rules?.blockedMonths||[]).includes(month);
     const sb=data.rules?.summerBlock;const sum=sb&&ds>=sb.start&&ds<=sb.end;
-    if(sel&&conflict) return {bg:"#2a1010",bd:"1.5px solid #e11d48",c:"#f87171"};
-    if(sel) return {bg:"#0e2414",bd:"1.5px solid #22c55e",c:"#4ade80"};
-    if(blk) return {bg:"#160808",bd:"1px solid transparent",c:"#2a1010"};
-    if(sum) return {bg:"#161608",bd:"1px solid transparent",c:"#2a2a08"};
-    if(busy) return {bg:"#1a1508",bd:"1px solid #f59e0b33",c:"#6b7280"};
-    return {bg:"transparent",bd:"1px solid transparent",c:"#4b5563"};
+    if(sel&&conflict) return {bg:"#fef2f2",bd:`1.5px solid ${C.red}`,c:C.red};
+    if(sel) return {bg:"#f0fdf4",bd:"1.5px solid #16a34a",c:"#16a34a"};
+    if(blk) return {bg:"#fef2f2",bd:`1px solid ${C.border}`,c:"#fca5a5"};
+    if(sum) return {bg:"#fefce8",bd:`1px solid ${C.border}`,c:"#a16207"};
+    if(busy) return {bg:"#fffbeb",bd:"1px solid #fcd34d",c:C.textLight};
+    return {bg:"transparent",bd:`1px solid ${C.border}`,c:C.textLight};
   }
+  function changeMonth(d){let m=month+d,y=year;if(m<0){m=11;y--;}if(m>11){m=0;y++;}onChangeMonth(m,y);}
   return (
     <div style={{...S.card,padding:14}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-        <button onClick={()=>onChangeMonth(-1)} style={{background:"none",border:"none",color:"#e11d48",fontSize:20,cursor:"pointer"}}>‹</button>
-        <div style={{fontWeight:700,fontSize:13}}>{monthName}</div>
-        <button onClick={()=>onChangeMonth(1)} style={{background:"none",border:"none",color:"#e11d48",fontSize:20,cursor:"pointer"}}>›</button>
+        <button onClick={()=>changeMonth(-1)} style={{background:"none",border:"none",color:C.red,fontSize:20,cursor:"pointer"}}>‹</button>
+        <div style={{fontWeight:700,fontSize:13,color:C.text}}>{monthName}</div>
+        <button onClick={()=>changeMonth(1)} style={{background:"none",border:"none",color:C.red,fontSize:20,cursor:"pointer"}}>›</button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:4}}>
-        {["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=><div key={d} style={{fontSize:9,color:"#374151",textAlign:"center",fontWeight:700}}>{d}</div>)}
+        {["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=><div key={d} style={{fontSize:9,color:C.textLight,textAlign:"center",fontWeight:700}}>{d}</div>)}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
         {Array.from({length:firstDay}).map((_,i)=><div key={`e${i}`}/>)}
         {Array.from({length:days}).map((_,i)=>{const s=cell(i+1);return <div key={i+1} style={{aspectRatio:"1",display:"flex",alignItems:"center",justifyContent:"center",borderRadius:4,fontSize:10,fontWeight:600,background:s.bg,border:s.bd,color:s.c}}>{i+1}</div>;})}
       </div>
       <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10}}>
-        {[["#22c55e","Dein Antrag"],["#f59e0b","Belegt"],["#e11d48","Nicht möglich"]].map(([c,l])=>(
-          <div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:9,color:"#6b7280"}}>
-            <div style={{width:8,height:8,borderRadius:2,background:c+"33",border:`1px solid ${c}`}}/>{l}
+        {[["#16a34a","Dein Antrag"],["#d97706","Belegt"],["#dc2626","Nicht möglich"]].map(([c,l])=>(
+          <div key={l} style={{display:"flex",alignItems:"center",gap:4,fontSize:9,color:C.textLight}}>
+            <div style={{width:8,height:8,borderRadius:2,background:c+"22",border:`1px solid ${c}`}}/>{l}
           </div>
         ))}
       </div>
@@ -222,28 +235,27 @@ function Calendar({year,month,onChangeMonth,vacFrom,vacTo,conflict,user,data}){
   );
 }
 
-// ─── ADMIN ────────────────────────────────────────────────────────────────────
 function EmpForm({emp:init,onSave,onCancel}){
   const [emp,setEmp]=useState({...init});
   const set=(k,v)=>setEmp(p=>({...p,[k]:v}));
   return (
-    <div style={{background:"#0d0f18",border:"1.5px solid #e11d4850",borderRadius:12,padding:14,marginBottom:10}}>
-      <div style={{fontSize:12,fontWeight:700,color:"#e11d48",marginBottom:12}}>{emp.id?"Bearbeiten":"Neuer Mitarbeiter"}</div>
+    <div style={{background:C.bg,border:`1.5px solid ${C.redBorder}`,borderRadius:12,padding:14,marginBottom:10}}>
+      <div style={{fontSize:12,fontWeight:700,color:C.red,marginBottom:12}}>{emp.id?"Bearbeiten":"Neuer Mitarbeiter"}</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
         {[["Name (Nachname, Vorname)","name"],["Rufname","firstName"],["E-Mail","email"],["Passwort","password"]].map(([l,k])=>(
-          <div key={k}><label style={S.label}>{l.toUpperCase()}</label><input value={emp[k]||""} onChange={e=>set(k,e.target.value)} style={{...S.input,fontSize:11,padding:"7px 8px"}}/></div>
+          <div key={k}><label style={S.label}>{l}</label><input value={emp[k]||""} onChange={e=>set(k,e.target.value)} style={{...S.input,fontSize:11,padding:"7px 8px"}}/></div>
         ))}
       </div>
       <div style={{marginBottom:8}}>
-        <label style={S.label}>ROLLE</label>
+        <label style={S.label}>Rolle</label>
         <select value={emp.role} onChange={e=>set("role",e.target.value)} style={{...S.input,fontSize:11,padding:"7px 8px"}}>
           {ROLES.map(r=><option key={r} value={r}>{r}</option>)}
         </select>
       </div>
       <div style={{display:"flex",gap:12,marginBottom:12,flexWrap:"wrap"}}>
         {[["LKW Groß","lkwGross"],["LKW Klein","lkwKlein"],["PKW","pkw"],["Admin","isAdmin"]].map(([l,k])=>(
-          <label key={k} style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:"#9ca3af",cursor:"pointer"}}>
-            <input type="checkbox" checked={!!emp[k]} onChange={e=>set(k,e.target.checked)} style={{accentColor:"#e11d48"}}/>{l}
+          <label key={k} style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:C.textMid,cursor:"pointer"}}>
+            <input type="checkbox" checked={!!emp[k]} onChange={e=>set(k,e.target.checked)} style={{accentColor:C.red}}/>{l}
           </label>
         ))}
       </div>
@@ -261,31 +273,23 @@ function Admin({data,updateData,setView}){
   const [newEmp,setNewEmp]=useState(null);
   const [rules,setRules]=useState({...data.rules});
   const [saved,setSaved]=useState(false);
-
-  function saveEmp(emp){
-    let emps;
-    if(emp.id){emps=data.employees.map(e=>e.id===emp.id?emp:e);}
-    else{const nid=Math.max(...data.employees.map(e=>e.id))+1;emps=[...data.employees,{...emp,id:nid}];}
-    updateData({...data,employees:emps});setEditEmp(null);setNewEmp(null);
-  }
+  function saveEmp(emp){let emps;if(emp.id){emps=data.employees.map(e=>e.id===emp.id?emp:e);}else{const nid=Math.max(...data.employees.map(e=>e.id))+1;emps=[...data.employees,{...emp,id:nid}];}updateData({...data,employees:emps});setEditEmp(null);setNewEmp(null);}
   function delEmp(id){if(!confirm("Mitarbeiter wirklich löschen?")) return;updateData({...data,employees:data.employees.filter(e=>e.id!==id)});}
   function saveRules(){updateData({...data,rules});setSaved(true);setTimeout(()=>setSaved(false),2000);}
-
   return (
     <div>
       <button onClick={()=>setView("dashboard")} style={S.back}>‹ Zurück</button>
-      <div style={{fontSize:18,fontWeight:800,marginBottom:2}}>⚙ Admin-Bereich</div>
-      <div style={{fontSize:12,color:"#4b5563",marginBottom:16}}>Nur für Administratoren</div>
+      <div style={{fontSize:18,fontWeight:800,marginBottom:2,color:C.text}}>⚙ Admin-Bereich</div>
+      <div style={{fontSize:12,color:C.textLight,marginBottom:16}}>Nur für Administratoren</div>
       <div style={{display:"flex",gap:6,marginBottom:18}}>
         {[["employees","Mitarbeiter"],["rules","Regeln"],["sent","Meldungen"]].map(([k,l])=>(
-          <button key={k} onClick={()=>setTab(k)} style={{background:tab===k?"#e11d4820":"#14161f",border:tab===k?"1.5px solid #e11d48":"1px solid #1e2130",borderRadius:8,padding:"7px 12px",cursor:"pointer",fontSize:12,fontWeight:600,color:tab===k?"#e11d48":"#6b7280"}}>{l}</button>
+          <button key={k} onClick={()=>setTab(k)} style={{background:tab===k?"#fef2f2":C.white,border:tab===k?`1.5px solid ${C.red}`:`1px solid ${C.border}`,borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:12,fontWeight:600,color:tab===k?C.red:C.textLight}}>{l}</button>
         ))}
       </div>
-
       {tab==="employees"&&(
         <div>
           <button onClick={()=>setNewEmp({name:"",firstName:"",role:"Monteur",email:"",lkwGross:false,lkwKlein:false,pkw:false,password:"",isAdmin:false})}
-            style={{width:"100%",...S.card,border:"1px dashed #e11d4860",padding:"10px",cursor:"pointer",color:"#e11d48",fontWeight:600,fontSize:13,marginBottom:12,textAlign:"center"}}>
+            style={{width:"100%",...S.card,border:`1px dashed ${C.redBorder}`,padding:"10px",cursor:"pointer",color:C.red,fontWeight:600,fontSize:13,marginBottom:12,textAlign:"center",boxShadow:"none"}}>
             + Neuen Mitarbeiter hinzufügen
           </button>
           {newEmp&&<EmpForm emp={newEmp} onSave={saveEmp} onCancel={()=>setNewEmp(null)}/>}
@@ -295,14 +299,14 @@ function Admin({data,updateData,setView}){
                 <div style={{...S.card,borderRadius:10,padding:"10px 12px",marginBottom:6,display:"flex",alignItems:"center",gap:10}}>
                   <Avatar emp={emp} size={32}/>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
-                      {emp.name}{emp.isAdmin&&<span style={{fontSize:9,background:"#e11d4820",color:"#e11d48",padding:"1px 5px",borderRadius:10}}>Admin</span>}
+                    <div style={{fontSize:12,fontWeight:600,color:C.text,display:"flex",alignItems:"center",gap:6}}>
+                      {emp.name}{emp.isAdmin&&<span style={{fontSize:9,background:"#fef2f2",color:C.red,padding:"1px 5px",borderRadius:10,border:`1px solid ${C.redBorder}`}}>Admin</span>}
                     </div>
-                    <div style={{fontSize:10,color:"#4b5563"}}>{emp.role} · {emp.email}</div>
+                    <div style={{fontSize:10,color:C.textLight}}>{emp.role} · {emp.email}</div>
                   </div>
                   <div style={{display:"flex",gap:4}}>
                     <button onClick={()=>setEditEmp({...emp})} style={{...S.btnGhost,padding:"4px 8px",fontSize:11}}>✏</button>
-                    <button onClick={()=>delEmp(emp.id)} style={{...S.btnGhost,padding:"4px 8px",fontSize:11,color:"#e11d48"}}>✕</button>
+                    <button onClick={()=>delEmp(emp.id)} style={{...S.btnGhost,padding:"4px 8px",fontSize:11,color:C.red}}>✕</button>
                   </div>
                 </div>
               )}
@@ -310,24 +314,23 @@ function Admin({data,updateData,setView}){
           ))}
         </div>
       )}
-
       {tab==="rules"&&(
         <div>
           <div style={{...S.card,marginBottom:12}}>
-            <div style={{fontSize:13,fontWeight:700,marginBottom:14}}>Urlaubsregeln</div>
+            <div style={{fontSize:13,fontWeight:700,marginBottom:14,color:C.text}}>Urlaubsregeln</div>
             {[["maxLkwGross","Max. LKW-Groß gleichzeitig"],["maxLkwKlein","Max. LKW-Klein gleichzeitig"],["maxVorarbeiter","Max. Vorarbeiter gleichzeitig"]].map(([k,l])=>(
               <div key={k} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-                <div style={{fontSize:12,color:"#9ca3af"}}>{l}</div>
+                <div style={{fontSize:12,color:C.textMid}}>{l}</div>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <button onClick={()=>setRules(p=>({...p,[k]:Math.max(1,(p[k]||1)-1)}))} style={{width:28,height:28,background:"#0d0f18",border:"1px solid #1e2130",borderRadius:6,color:"#e11d48",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
-                  <span style={{fontSize:16,fontWeight:700,minWidth:20,textAlign:"center"}}>{rules[k]}</span>
-                  <button onClick={()=>setRules(p=>({...p,[k]:(p[k]||1)+1}))} style={{width:28,height:28,background:"#0d0f18",border:"1px solid #1e2130",borderRadius:6,color:"#e11d48",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                  <button onClick={()=>setRules(p=>({...p,[k]:Math.max(1,(p[k]||1)-1)}))} style={{width:30,height:30,background:C.bg,border:`1px solid ${C.border}`,borderRadius:6,color:C.red,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
+                  <span style={{fontSize:16,fontWeight:700,minWidth:24,textAlign:"center",color:C.text}}>{rules[k]}</span>
+                  <button onClick={()=>setRules(p=>({...p,[k]:(p[k]||1)+1}))} style={{width:30,height:30,background:C.bg,border:`1px solid ${C.border}`,borderRadius:6,color:C.red,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
                 </div>
               </div>
             ))}
           </div>
           <div style={{...S.card,marginBottom:12}}>
-            <div style={{fontSize:13,fontWeight:700,marginBottom:14}}>Sommerblock</div>
+            <div style={{fontSize:13,fontWeight:700,marginBottom:14,color:C.text}}>Sommerblock</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
               {[["Von","start"],["Bis","end"]].map(([l,k])=>(
                 <div key={k}><label style={S.label}>{l}</label>
@@ -336,27 +339,26 @@ function Admin({data,updateData,setView}){
               ))}
             </div>
           </div>
-          <button onClick={saveRules} style={{...S.btn,background:saved?"linear-gradient(135deg,#22c55e,#16a34a)":"linear-gradient(135deg,#e11d48,#be123c)"}}>
+          <button onClick={saveRules} style={{...S.btn,background:saved?"linear-gradient(135deg,#16a34a,#15803d)":"linear-gradient(135deg,#dc2626,#b91c1c)"}}>
             {saved?"✓ Gespeichert!":"Regeln speichern"}
           </button>
         </div>
       )}
-
       {tab==="sent"&&(
         <div>
-          <div style={{fontSize:12,color:"#4b5563",marginBottom:12}}>Alle eingegangenen Meldungen & Anträge</div>
-          {(data.sentItems||[]).length===0&&<div style={{textAlign:"center",color:"#4b5563",fontSize:13,padding:24}}>Noch keine Meldungen vorhanden</div>}
+          <div style={{fontSize:12,color:C.textLight,marginBottom:12}}>Alle eingegangenen Meldungen & Anträge</div>
+          {(data.sentItems||[]).length===0&&<div style={{textAlign:"center",color:C.textLight,fontSize:13,padding:24}}>Noch keine Meldungen vorhanden</div>}
           {[...(data.sentItems||[])].reverse().map((item,i)=>{
             const emp=data.employees.find(e=>e.id===item.employeeId);
             return (
               <div key={i} style={{...S.card,borderRadius:10,padding:12,marginBottom:8}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-                  <div style={{fontSize:12,fontWeight:700}}>{item.label}</div>
-                  <div style={{fontSize:10,color:"#4b5563"}}>{item.date}</div>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                  <div style={{fontSize:12,fontWeight:700,color:C.text}}>{item.label}</div>
+                  <div style={{fontSize:10,color:C.textLight}}>{item.date}</div>
                 </div>
-                <div style={{fontSize:11,color:"#9ca3af",marginBottom:4}}>Von: <span style={{color:"#e8eaf0"}}>{emp?.name||"?"}</span> ({emp?.role})</div>
-                <div style={{fontSize:11,color:"#9ca3af",marginBottom:item.text?6:0}}>An: <span style={{color:"#e11d48"}}>{item.to}</span></div>
-                {item.text&&<div style={{fontSize:11,color:"#6b7280",background:"#0d0f18",borderRadius:6,padding:"6px 8px"}}>{item.text}</div>}
+                <div style={{fontSize:11,color:C.textLight,marginBottom:4}}>Von: <span style={{color:C.text,fontWeight:600}}>{emp?.name||"?"}</span> ({emp?.role})</div>
+                <div style={{fontSize:11,color:C.textLight,marginBottom:item.text?6:0}}>An: <span style={{color:C.red,fontWeight:600}}>{item.to}</span></div>
+                {item.text&&<div style={{fontSize:11,color:C.textMid,background:C.bg,borderRadius:6,padding:"6px 8px",border:`1px solid ${C.border}`}}>{item.text}</div>}
               </div>
             );
           })}
@@ -366,19 +368,14 @@ function Admin({data,updateData,setView}){
   );
 }
 
-// ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function App(){
   const [data,setData]=useState(loadData());
   const [user,setUser]=useState(null);
   const [view,setView]=useState("dashboard");
   const [successMsg,setSuccessMsg]=useState("");
-
-  // Meldung state
   const [mKey,setMKey]=useState(null);
   const [mText,setMText]=useState("");
   const [mRecip,setMRecip]=useState(null);
-
-  // Urlaub state
   const [vFrom,setVFrom]=useState("");
   const [vTo,setVTo]=useState("");
   const [conflict,setConflict]=useState(null);
@@ -388,26 +385,17 @@ export default function App(){
   useEffect(()=>{if(vFrom&&vTo&&user) setConflict(checkConflict(vFrom,vTo,user,data)); else setConflict(null);},[vFrom,vTo,user]);
 
   function updateData(d){setData(d);saveData(d);}
-
-  function addSent(item){
-    const newData={...data,sentItems:[...(data.sentItems||[]),item]};
-    updateData(newData);
-  }
-
-  function handleSuccess(msg,item){
-    if(item) addSent(item);
-    setSuccessMsg(msg);
-    setView("success");
-  }
+  function addSent(item){const nd={...data,sentItems:[...(data.sentItems||[]),item]};updateData(nd);}
+  function handleSuccess(msg,item){if(item)addSent(item);setSuccessMsg(msg);setView("success");}
 
   if(!user) return <Login employees={data.employees} onLogin={u=>{setUser(u);setView("dashboard");}}/>;
 
   const mt=data.meldungTypes?.find(m=>m.key===mKey);
   function getRecips(m){return (m?.recipientIds||[]).map(id=>data.employees.find(e=>e.id===id)).filter(Boolean);}
-  function canSendMeldung(){if(!mt||!mText.trim()) return false;if(mt.multiSelect&&!mRecip) return false;return true;}
+  function canSend(){if(!mt||!mText.trim()) return false;if(mt.multiSelect&&!mRecip) return false;return true;}
 
   function submitMeldung(){
-    if(!canSendMeldung()) return;
+    if(!canSend()) return;
     const recips=mt.multiSelect?[data.employees.find(e=>e.id===mRecip)?.name].filter(Boolean):getRecips(mt).map(r=>r.name);
     const toStr=recips.join(", ");
     handleSuccess(`Deine Meldung wurde weitergeleitet an: ${toStr}.`,{id:Date.now(),employeeId:user.id,type:"meldung",label:mt.label,text:mText,to:toStr,date:new Date().toLocaleDateString("de-DE")});
@@ -421,8 +409,6 @@ export default function App(){
     setVFrom("");setVTo("");
   }
 
-  function changeMonth(d){let m=calMonth+d,y=calYear;if(m<0){m=11;y--;}if(m>11){m=0;y++;}setCalMonth(m);setCalYear(y);}
-
   const allVacs=getAllVacs(data);
   const upcoming=allVacs.filter(v=>v.to>=new Date().toISOString().split("T")[0]).slice(0,5);
   const myItems=(data.sentItems||[]).filter(s=>s.employeeId===user.id).slice(-3).reverse();
@@ -430,42 +416,55 @@ export default function App(){
   return (
     <div style={S.page}>
       {/* HEADER */}
-      <div style={{background:"#14161f",borderBottom:"1px solid #1e2130"}}>
+      <div style={{background:C.white,borderBottom:`1px solid ${C.border}`,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
         <div style={{padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <Logo/>
           <div style={{display:"flex",gap:6}}>
-            {user.isAdmin&&<button onClick={()=>setView("admin")} style={{background:"#e11d4820",border:"1px solid #e11d4850",borderRadius:6,padding:"5px 10px",color:"#e11d48",fontSize:11,cursor:"pointer",fontWeight:600}}>⚙ Admin</button>}
+            {user.isAdmin&&<button onClick={()=>setView("admin")} style={{background:"#fef2f2",border:`1px solid ${C.redBorder}`,borderRadius:6,padding:"5px 10px",color:C.red,fontSize:11,cursor:"pointer",fontWeight:600}}>⚙ Admin</button>}
             <button onClick={()=>{setUser(null);setView("dashboard");}} style={S.btnGhost}>Abmelden</button>
           </div>
         </div>
-        <div style={{padding:"8px 16px 10px",display:"flex",alignItems:"center",gap:10,borderTop:"1px solid #1e2130"}}>
+        <div style={{padding:"8px 16px 12px",display:"flex",alignItems:"center",gap:10,borderTop:`1px solid ${C.border}`}}>
           <Avatar emp={user} size={34}/>
-          <div><div style={{fontWeight:700,fontSize:13}}>Hallo, {user.firstName}!</div><div style={{fontSize:10,color:roleColor(user.role)}}>{user.role}</div></div>
+          <div>
+            <div style={{fontWeight:700,fontSize:13,color:C.text}}>Hallo, {user.firstName}!</div>
+            <div style={{fontSize:10,color:roleColor(user.role)}}>{user.role}</div>
+          </div>
         </div>
       </div>
 
-      <div style={{flex:1,padding:16,maxWidth:480,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
+      <div style={{flex:1,padding:16,maxWidth:520,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
 
         {/* DASHBOARD */}
         {view==="dashboard"&&(
           <div>
-            <div style={{fontSize:18,fontWeight:800,marginBottom:2,letterSpacing:"-0.4px"}}>Was möchtest du melden?</div>
-            <div style={{fontSize:12,color:"#4b5563",marginBottom:20}}>Wähle eine Kategorie</div>
-            {[{icon:"📋",title:"Meldung senden",desc:"Arbeitsmittel · Gespräch · Krankheit",to:"meldung"},{icon:"🏖️",title:"Urlaub beantragen",desc:"Kalender & Verfügbarkeit prüfen",to:"urlaub"}].map((item,i)=>(
-              <button key={i} onClick={()=>setView(item.to)} style={{width:"100%",...S.card,padding:"16px 18px",marginBottom:10,display:"flex",alignItems:"center",gap:14,cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}
-                onMouseOver={e=>{e.currentTarget.style.borderColor="#e11d48";e.currentTarget.style.background="#1a0f10";}} onMouseOut={e=>{e.currentTarget.style.borderColor="#1e2130";e.currentTarget.style.background="#14161f";}}>
-                <div style={{fontSize:26}}>{item.icon}</div>
-                <div><div style={{fontWeight:700,fontSize:14}}>{item.title}</div><div style={{fontSize:11,color:"#4b5563",marginTop:2}}>{item.desc}</div></div>
-                <div style={{marginLeft:"auto",color:"#e11d48",fontSize:20}}>›</div>
+            <div style={{fontSize:19,fontWeight:800,marginBottom:2,color:C.text}}>Was möchtest du melden?</div>
+            <div style={{fontSize:12,color:C.textLight,marginBottom:20}}>Wähle eine Kategorie</div>
+            {[
+              {icon:"📋",title:"Meldung senden",desc:"Arbeitsmittel · Gespräch · Krankheit",to:"meldung"},
+              {icon:"🏖️",title:"Urlaub beantragen",desc:"Kalender & Verfügbarkeit prüfen",to:"urlaub"},
+            ].map((item,i)=>(
+              <button key={i} onClick={()=>setView(item.to)} style={{width:"100%",...S.card,padding:"18px 20px",marginBottom:12,display:"flex",alignItems:"center",gap:16,cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}
+                onMouseOver={e=>{e.currentTarget.style.borderColor=C.red;e.currentTarget.style.background="#fff8f8";}}
+                onMouseOut={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.background=C.white;}}>
+                <div style={{fontSize:28}}>{item.icon}</div>
+                <div>
+                  <div style={{fontWeight:700,fontSize:15,color:C.text}}>{item.title}</div>
+                  <div style={{fontSize:12,color:C.textLight,marginTop:2}}>{item.desc}</div>
+                </div>
+                <div style={{marginLeft:"auto",color:C.red,fontSize:22}}>›</div>
               </button>
             ))}
             {myItems.length>0&&<div style={{marginTop:24}}>
-              <div style={{fontSize:10,fontWeight:700,color:"#4b5563",marginBottom:8,textTransform:"uppercase",letterSpacing:"1px"}}>Deine letzten Meldungen</div>
+              <div style={{fontSize:11,fontWeight:700,color:C.textLight,marginBottom:10,textTransform:"uppercase",letterSpacing:"0.5px"}}>Deine letzten Meldungen</div>
               {myItems.map((item,i)=>(
-                <div key={i} style={{...S.card,borderRadius:10,padding:"10px 12px",marginBottom:6,display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{fontSize:18}}>{item.type==="urlaub"?"🏖️":"📋"}</div>
-                  <div style={{flex:1}}><div style={{fontSize:12,fontWeight:600}}>{item.label}</div><div style={{fontSize:10,color:"#4b5563"}}>An: {item.to} · {item.date}</div></div>
-                  <div style={{fontSize:9,background:"#22c55e15",color:"#22c55e",padding:"3px 7px",borderRadius:20,fontWeight:600}}>✓ Gesendet</div>
+                <div key={i} style={{...S.card,borderRadius:10,padding:"10px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{fontSize:20}}>{item.type==="urlaub"?"🏖️":"📋"}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:12,fontWeight:600,color:C.text}}>{item.label}</div>
+                    <div style={{fontSize:10,color:C.textLight}}>An: {item.to} · {item.date}</div>
+                  </div>
+                  <div style={{fontSize:10,background:"#f0fdf4",color:C.green,padding:"3px 8px",borderRadius:20,fontWeight:600,border:"1px solid #86efac"}}>✓ Gesendet</div>
                 </div>
               ))}
             </div>}
@@ -476,39 +475,39 @@ export default function App(){
         {view==="meldung"&&(
           <div>
             <button onClick={()=>setView("dashboard")} style={S.back}>‹ Zurück</button>
-            <div style={{fontSize:18,fontWeight:800,marginBottom:2}}>Meldung senden</div>
-            <div style={{fontSize:12,color:"#4b5563",marginBottom:18}}>Was möchtest du melden?</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:18}}>
+            <div style={{fontSize:19,fontWeight:800,marginBottom:2,color:C.text}}>Meldung senden</div>
+            <div style={{fontSize:12,color:C.textLight,marginBottom:18}}>Was möchtest du melden?</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:18}}>
               {(data.meldungTypes||[]).map(t=>(
-                <button key={t.key} onClick={()=>{setMKey(t.key);setMRecip(null);}} style={{background:mKey===t.key?"#1a0f10":"#14161f",border:mKey===t.key?"1.5px solid #e11d48":"1px solid #1e2130",borderRadius:12,padding:"14px 8px",cursor:"pointer",textAlign:"center",transition:"all 0.15s"}}>
-                  <div style={{fontSize:22,marginBottom:4}}>{t.icon}</div>
-                  <div style={{fontSize:10,fontWeight:700,color:"#e8eaf0"}}>{t.label}</div>
-                  <div style={{fontSize:9,color:"#4b5563",marginTop:2}}>{t.desc}</div>
+                <button key={t.key} onClick={()=>{setMKey(t.key);setMRecip(null);}} style={{background:mKey===t.key?"#fef2f2":C.white,border:mKey===t.key?`1.5px solid ${C.red}`:`1px solid ${C.border}`,borderRadius:12,padding:"16px 8px",cursor:"pointer",textAlign:"center",transition:"all 0.15s",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
+                  <div style={{fontSize:24,marginBottom:6}}>{t.icon}</div>
+                  <div style={{fontSize:11,fontWeight:700,color:C.text}}>{t.label}</div>
+                  <div style={{fontSize:10,color:C.textLight,marginTop:2}}>{t.desc}</div>
                 </button>
               ))}
             </div>
             {mt&&(
-              <div style={{...S.card,border:"1px solid #e11d4833",marginBottom:14,fontSize:11}}>
+              <div style={{...S.card,border:`1px solid ${C.redBorder}`,background:"#fff8f8",marginBottom:14,fontSize:11}}>
                 {mt.multiSelect?(
                   <div>
-                    <div style={{color:"#4b5563",marginBottom:8}}>Gesprächspartner wählen:</div>
+                    <div style={{color:C.textMid,marginBottom:8,fontWeight:600}}>Gesprächspartner wählen:</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                       {getRecips(mt).map(r=>(
-                        <button key={r.id} onClick={()=>setMRecip(r.id)} style={{background:mRecip===r.id?"#e11d4822":"#0d0f18",border:mRecip===r.id?"1.5px solid #e11d48":"1px solid #1e2130",borderRadius:6,padding:"5px 10px",cursor:"pointer",fontSize:11,color:mRecip===r.id?"#e11d48":"#9ca3af",transition:"all 0.15s"}}>
+                        <button key={r.id} onClick={()=>setMRecip(r.id)} style={{background:mRecip===r.id?"#fef2f2":C.white,border:mRecip===r.id?`1.5px solid ${C.red}`:`1px solid ${C.border}`,borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:11,color:mRecip===r.id?C.red:C.textMid,fontWeight:mRecip===r.id?600:400,transition:"all 0.15s"}}>
                           {r.firstName} {r.name.split(", ")[0]}
                         </button>
                       ))}
                     </div>
-                    {mt.coordinatorId&&(()=>{const c=data.employees.find(e=>e.id===mt.coordinatorId);return c?<div style={{marginTop:8,color:"#4b5563",fontSize:10}}>Koordiniert über: <span style={{color:"#e11d48"}}>{c.name}</span></div>:null;})()}
+                    {mt.coordinatorId&&(()=>{const c=data.employees.find(e=>e.id===mt.coordinatorId);return c?<div style={{marginTop:8,color:C.textLight,fontSize:10}}>Koordiniert über: <span style={{color:C.red,fontWeight:600}}>{c.name}</span></div>:null;})()}
                   </div>
                 ):(
-                  <div>📨 Wird gesendet an: <span style={{color:"#e11d48",fontWeight:600}}>{getRecips(mt).map(r=>r.name).join(", ")}</span></div>
+                  <div style={{color:C.textMid}}>📨 Wird gesendet an: <span style={{color:C.red,fontWeight:600}}>{getRecips(mt).map(r=>r.name).join(", ")}</span></div>
                 )}
               </div>
             )}
             <textarea value={mText} onChange={e=>setMText(e.target.value)} placeholder="Beschreibe dein Anliegen..." rows={4}
               style={{...S.input,resize:"none",fontSize:13,padding:"10px 12px"}}/>
-            <button onClick={submitMeldung} disabled={!canSendMeldung()} style={{...S.btn,marginTop:10,background:canSendMeldung()?"linear-gradient(135deg,#e11d48,#be123c)":"#1e2130",color:canSendMeldung()?"#fff":"#374151",cursor:canSendMeldung()?"pointer":"not-allowed"}}>
+            <button onClick={submitMeldung} disabled={!canSend()} style={{...S.btn,marginTop:10,background:canSend()?"linear-gradient(135deg,#dc2626,#b91c1c)":"#e5e7eb",color:canSend()?"#fff":C.textLight,cursor:canSend()?"pointer":"not-allowed"}}>
               Meldung absenden ›
             </button>
           </div>
@@ -518,9 +517,9 @@ export default function App(){
         {view==="urlaub"&&(
           <div>
             <button onClick={()=>setView("dashboard")} style={S.back}>‹ Zurück</button>
-            <div style={{fontSize:18,fontWeight:800,marginBottom:2}}>Urlaub beantragen</div>
-            <div style={{fontSize:12,color:"#4b5563",marginBottom:16}}>Zeitraum wählen & Verfügbarkeit prüfen</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+            <div style={{fontSize:19,fontWeight:800,marginBottom:2,color:C.text}}>Urlaub beantragen</div>
+            <div style={{fontSize:12,color:C.textLight,marginBottom:16}}>Zeitraum wählen & Verfügbarkeit prüfen</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
               {[["VON",vFrom,setVFrom],["BIS",vTo,setVTo]].map(([l,val,setter])=>(
                 <div key={l}><label style={S.label}>{l}</label>
                   <input type="date" value={val} onChange={e=>setter(e.target.value)} style={{...S.input,fontSize:12,padding:"9px 10px"}}/>
@@ -528,26 +527,26 @@ export default function App(){
               ))}
             </div>
             {vFrom&&vTo&&vFrom<=vTo&&(
-              <div style={{background:conflict?"#1a0808":"#081a0e",border:`1px solid ${conflict?"#e11d48":"#22c55e"}`,borderRadius:10,padding:"10px 12px",marginBottom:14,display:"flex",alignItems:"flex-start",gap:10}}>
-                <span style={{fontSize:18,flexShrink:0}}>{conflict?"🚫":"✅"}</span>
+              <div style={{background:conflict?C.redLight:C.greenLight,border:`1px solid ${conflict?C.redBorder:C.greenBorder}`,borderRadius:10,padding:"12px 14px",marginBottom:14,display:"flex",alignItems:"flex-start",gap:10}}>
+                <span style={{fontSize:20,flexShrink:0}}>{conflict?"🚫":"✅"}</span>
                 <div>
-                  <div style={{fontWeight:700,color:conflict?"#e11d48":"#22c55e",fontSize:13,marginBottom:2}}>{conflict?"Buchung nicht möglich":"Zeitraum verfügbar"}</div>
-                  <div style={{fontSize:11,color:"#6b7280"}}>{conflict?conflict.msg:"Du kannst diesen Zeitraum beantragen."}</div>
+                  <div style={{fontWeight:700,color:conflict?C.red:C.green,fontSize:13,marginBottom:2}}>{conflict?"Buchung nicht möglich":"Zeitraum verfügbar"}</div>
+                  <div style={{fontSize:11,color:C.textMid}}>{conflict?conflict.msg:"Du kannst diesen Zeitraum beantragen."}</div>
                 </div>
               </div>
             )}
-            <Calendar year={calYear} month={calMonth} onChangeMonth={changeMonth} vacFrom={vFrom} vacTo={vTo} conflict={!!conflict} user={user} data={data}/>
+            <Calendar year={calYear} month={calMonth} onChangeMonth={(m,y)=>{setCalMonth(m);setCalYear(y);}} vacFrom={vFrom} vacTo={vTo} conflict={!!conflict} user={user} data={data}/>
             {upcoming.length>0&&<div style={{marginTop:14,marginBottom:14}}>
-              <div style={{fontSize:10,fontWeight:700,color:"#4b5563",marginBottom:8,textTransform:"uppercase",letterSpacing:"1px"}}>Aktuelle Urlaubsbuchungen</div>
+              <div style={{fontSize:11,fontWeight:700,color:C.textLight,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.5px"}}>Aktuelle Urlaubsbuchungen</div>
               {upcoming.map((v,i)=>(
-                <div key={i} style={{...S.card,borderRadius:8,padding:"8px 10px",marginBottom:5,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div><div style={{fontSize:11,fontWeight:600}}>{v.name}</div><div style={{fontSize:10,color:"#4b5563"}}>{v.role}{v.fixed?" · Pflicht":""}</div></div>
-                  <div style={{fontSize:10,color:"#f59e0b",fontWeight:600}}>{v.from.slice(5)} – {v.to.slice(5)}</div>
+                <div key={i} style={{...S.card,borderRadius:8,padding:"8px 12px",marginBottom:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div><div style={{fontSize:11,fontWeight:600,color:C.text}}>{v.name}</div><div style={{fontSize:10,color:C.textLight}}>{v.role}{v.fixed?" · Pflicht":""}</div></div>
+                  <div style={{fontSize:10,color:C.amber,fontWeight:600}}>{v.from.slice(5)} – {v.to.slice(5)}</div>
                 </div>
               ))}
             </div>}
             <button onClick={submitUrlaub} disabled={!vFrom||!vTo||vFrom>vTo||!!conflict}
-              style={{...S.btn,background:(!vFrom||!vTo||vFrom>vTo||!!conflict)?"#1e2130":"linear-gradient(135deg,#e11d48,#be123c)",color:(!vFrom||!vTo||vFrom>vTo||!!conflict)?"#374151":"#fff",cursor:"pointer"}}>
+              style={{...S.btn,background:(!vFrom||!vTo||vFrom>vTo||!!conflict)?"#e5e7eb":"linear-gradient(135deg,#dc2626,#b91c1c)",color:(!vFrom||!vTo||vFrom>vTo||!!conflict)?C.textLight:"#fff"}}>
               Urlaubsantrag senden ›
             </button>
           </div>
@@ -560,14 +559,15 @@ export default function App(){
         {view==="success"&&(
           <div style={{textAlign:"center",paddingTop:50}}>
             <div style={{fontSize:60,marginBottom:16}}>✅</div>
-            <div style={{fontSize:20,fontWeight:800,marginBottom:10,letterSpacing:"-0.4px"}}>Erfolgreich gesendet!</div>
-            <div style={{fontSize:13,color:"#6b7280",lineHeight:1.7,marginBottom:32,padding:"0 10px"}}>{successMsg}</div>
-            <button onClick={()=>setView("dashboard")} style={{...S.btn,width:"auto",padding:"13px 30px"}}>Zurück zur Übersicht</button>
+            <div style={{fontSize:20,fontWeight:800,marginBottom:10,color:C.text}}>Erfolgreich gesendet!</div>
+            <div style={{fontSize:13,color:C.textMid,lineHeight:1.7,marginBottom:32,padding:"0 10px"}}>{successMsg}</div>
+            <button onClick={()=>setView("dashboard")} style={{...S.btn,width:"auto",padding:"13px 32px"}}>Zurück zur Übersicht</button>
           </div>
         )}
       </div>
-      <div style={{borderTop:"1px solid #1e2130",padding:"8px 16px",textAlign:"center"}}>
-        <div style={{fontSize:9,color:"#1e2130"}}>KLUKAS-GERÜSTE GmbH · Wir helfen aufzubauen!</div>
+
+      <div style={{borderTop:`1px solid ${C.border}`,padding:"8px 16px",textAlign:"center",background:C.white}}>
+        <div style={{fontSize:9,color:C.textLight}}>KLUKAS-GERÜSTE GmbH · Wir helfen aufzubauen!</div>
       </div>
     </div>
   );
