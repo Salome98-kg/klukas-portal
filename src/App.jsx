@@ -110,18 +110,10 @@ const S={
 function Logo({size=1}){
   return (
     <div style={{display:"flex",alignItems:"center",gap:8*size}}>
-      <svg width={40*size} height={28*size} viewBox="0 0 72 48">
-        <polyline points="4,44 36,6 68,44" fill="none" stroke="#e11d48" strokeWidth="5" strokeLinejoin="round"/>
-        <line x1="2" y1="44" x2="70" y2="44" stroke="#e11d48" strokeWidth="5"/>
-      </svg>
-      <div>
-        <div style={{fontSize:14*size,fontWeight:900,color:"#e11d48",letterSpacing:"-0.3px",lineHeight:1}}>KLUKAS-GERÜSTE</div>
-        <div style={{fontSize:8*size,color:"#4b5563",letterSpacing:"1px"}}>GmbH · MITARBEITERPORTAL</div>
-      </div>
+      <img src="./logo.png" alt="Klukas-Gerüste" style={{height:40*size,width:"auto"}}/>
     </div>
   );
 }
-
 // ─── AVATAR ───────────────────────────────────────────────────────────────────
 function Avatar({emp,size=36}){
   const c=roleColor(emp.role);
