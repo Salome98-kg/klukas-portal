@@ -47,12 +47,6 @@ const DEFAULT_FIXED = [
   {employeeIds:[10], from:"2027-08-02",to:"2027-08-20",label:"Lager"},
 ];
 
-const DEFAULT_BOOKED = [
-  {id:"v1",employeeId:15,name:"Linke, Andreas", role:"Monteur",    lkwGross:true, from:"2026-07-07",to:"2026-07-11"},
-  {id:"v2",employeeId:16,name:"Rasp, Oliver",   role:"Monteur",    lkwGross:true, from:"2026-07-14",to:"2026-07-18"},
-  {id:"v3",employeeId:19,name:"Ellmer, Holger", role:"Vorarbeiter",lkwGross:true, from:"2026-08-03",to:"2026-08-07"},
-];
-
 const DEFAULT_MELDUNGEN = [
   {key:"arbeitsmittel",icon:"🔧",label:"Arbeitsmittel",desc:"Fehlendes / defektes Material",recipientIds:[7],multiSelect:false},
   {key:"gespraech",   icon:"💬",label:"Gespräch",      desc:"Gesprächswunsch",              recipientIds:[1,2,3,4,5],multiSelect:true,coordinatorId:8},
@@ -422,6 +416,7 @@ export default function App(){
 
   function submitMeldung(){
     if(!canSend()) return;
+    sendEmail(user.name, user.role, mt.label, toStr, mText, `${mt.label} von ${user.name}`);
     const recips=mt.multiSelect?[data.employees.find(e=>e.id===mRecip)?.name].filter(Boolean):getRecips(mt).map(r=>r.name);
     const toStr=recips.join(", ");
     handleSuccess(`Deine Meldung wurde weitergeleitet an: ${toStr}.`,{id:Date.now(),employeeId:user.id,type:"meldung",label:mt.label,text:mText,to:toStr,date:new Date().toLocaleDateString("de-DE")});
@@ -430,6 +425,7 @@ export default function App(){
 
   function submitUrlaub(){
     if(!vFrom||!vTo||conflict) return;
+    sendEmail(user.name, user.role, "Urlaubsantrag", recNames, `Zeitraum: ${vFrom} – ${vTo}`, `Urlaubsantrag von ${user.name}`);
     const recNames=(data.vacationRecipientIds||[]).map(id=>data.employees.find(e=>e.id===id)?.name).filter(Boolean).join(", ");
     handleSuccess(`Dein Urlaubsantrag (${vFrom} – ${vTo}) wurde an ${recNames} weitergeleitet.`,{id:Date.now(),employeeId:user.id,type:"urlaub",label:"Urlaubsantrag",text:`${vFrom} – ${vTo}`,to:recNames,date:new Date().toLocaleDateString("de-DE")});
     setVFrom("");setVTo("");
