@@ -109,8 +109,18 @@ const S={
 // ─── LOGO ─────────────────────────────────────────────────────────────────────
 function Logo({size=1}){
   return (
-    <div style={{display:"flex",alignItems:"center",gap:8*size}}>
-      <img src="./logo.png" alt="Klukas-Gerüste" style={{height:40*size,width:"auto"}}/>
+    <div style={{display:"flex",alignItems:"center",gap:6*size}}>
+      <svg width={50*size} height={44*size} viewBox="0 0 100 88">
+        <line x1="0" y1="40" x2="50" y2="4" stroke="#111" strokeWidth="5" strokeLinecap="round"/>
+        <line x1="50" y1="4" x2="100" y2="40" stroke="#111" strokeWidth="5" strokeLinecap="round"/>
+        <line x1="0" y1="52" x2="100" y2="52" stroke="#111" strokeWidth="5"/>
+        <line x1="0" y1="84" x2="100" y2="84" stroke="#111" strokeWidth="4"/>
+        <text x="50" y="78" textAnchor="middle" style={{fontSize:44,fontWeight:900,fill:"#dc2626",fontFamily:"Arial Black,sans-serif"}}>KG</text>
+      </svg>
+      <div>
+        <div style={{fontSize:13*size,fontWeight:900,color:"#dc2626",letterSpacing:"-0.3px",lineHeight:1}}>KLUKAS-GERÜSTE</div>
+        <div style={{fontSize:7*size,color:"#6b7280",letterSpacing:"0.8px"}}>GmbH · MITARBEITERPORTAL</div>
+      </div>
     </div>
   );
 }
