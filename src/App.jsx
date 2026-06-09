@@ -20,30 +20,23 @@ async function supabase(method, table, data = null, filter = "") {
 }
 
 // ─── EMAILJS ──────────────────────────────────────────────────────────────────
-async function sendEmail(vonName, vonRolle, meldungArt, anName, nachricht, betreff, toEmail) {
+const EMAILJS_PUBLIC = "LNWETx8iRbXRi2zvl";
+const EMAILJS_SERVICE = "service_gxg015l";
+const EMAILJS_TEMPLATE = "template_av4scen";
+
+async function sendEmail(vonName, vonRolle, meldungArt, anName, nachricht, betreff, toEmail="") {
   try {
-    const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+    await fetch("https://api.emailjs.com/api/v1.0/email/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        service_id: "service_gxg015l",
-        template_id: "template_av4scen",
-        user_id: "LNWETx8iRbXRi2zvl",
-        template_params: {
-  betreff: betreff,
-  von_name: vonName,
-  von_rolle: vonRolle,
-  meldung_art: meldungArt,
-  an_name: anName,
-  nachricht: nachricht,
-  to_email: toEmail,
-}
+        service_id: EMAILJS_SERVICE,
+        template_id: EMAILJS_TEMPLATE,
+        user_id: EMAILJS_PUBLIC,
+        template_params: { betreff, von_name: vonName, von_rolle: vonRolle, meldung_art: meldungArt, an_name: anName, nachricht, to_email: toEmail }
       })
     });
-    console.log("Email status:", response.status);
-  } catch(e) {
-    console.error("Email error:", e);
-  }
+  } catch(e) { console.error("Email error:", e); }
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -262,18 +255,20 @@ function ApprovalPage({antragId, employees}){
     const emp = employees.find(e=>e.id===antrag.mitarbeiter_id);
     if(approved){
       // Info an Mitarbeiter
+      const empEmail = employees.find(e=>e.id===antrag.mitarbeiter_id)?.email||"";
       await sendEmail("Torsten May","Bauleiter","Urlaubsgenehmigung",antrag.mitarbeiter_name,
         `Dein Urlaubsantrag vom ${antrag.von} bis ${antrag.bis} (${antrag.arbeitstage} Arbeitstage) wurde GENEHMIGT.`,
-        `✅ Urlaub genehmigt: ${antrag.mitarbeiter_name}`);
+        `✅ Urlaub genehmigt: ${antrag.mitarbeiter_name}`, empEmail);
       // Info an Elke & Falk
       await sendEmail("Torsten May","Bauleiter","Urlaubsgenehmigung","Elke Anders, Falk Kademann",
         `Urlaubsantrag von ${antrag.mitarbeiter_name} (${antrag.mitarbeiter_rolle}) vom ${antrag.von} bis ${antrag.bis} wurde genehmigt.`,
-        `Urlaub genehmigt: ${antrag.mitarbeiter_name}`);
+        `Urlaub genehmigt: ${antrag.mitarbeiter_name}`, "elke.anders@klukas-gerueste.de,falk.kademann@klukas-gerueste.de");
     } else {
       // Info an Mitarbeiter
+      const empEmailRej = employees.find(e=>e.id===antrag.mitarbeiter_id)?.email||"";
       await sendEmail("Torsten May","Bauleiter","Urlaubsablehnung",antrag.mitarbeiter_name,
         `Dein Urlaubsantrag vom ${antrag.von} bis ${antrag.bis} wurde ABGELEHNT. Bitte wende dich an deinen Bauleiter.`,
-        `❌ Urlaub abgelehnt: ${antrag.mitarbeiter_name}`);
+        `❌ Urlaub abgelehnt: ${antrag.mitarbeiter_name}`, empEmailRej);
     }
     setDone(approved);
     setProcessing(false);
@@ -691,9 +686,10 @@ export default function App(){
 
   function submitMeldung(){
     if(!canSend()) return;
-    const recips=mt.multiSelect?[data.employees.find(e=>e.id===mRecip)?.name].filter(Boolean):getRecips(mt).map(r=>r.name);
-    const toStr=recips.join(", ");
-    sendEmail(user.name,user.role,mt.label,toStr,mText,`${mt.label} von ${user.name}`);
+    const recipEmps = mt.multiSelect ? [data.employees.find(e=>e.id===mRecip)].filter(Boolean) : getRecips(mt);
+    const toStr = recipEmps.map(r=>r.name).join(", ");
+    const toEmail = recipEmps.map(r=>r.email).join(", ");
+    sendEmail(user.name, user.role, mt.label, toStr, mText, `${mt.label} von ${user.name}`, toEmail);
     handleSuccess(`Deine Meldung wurde weitergeleitet an: ${toStr}.`,{id:Date.now(),employeeId:user.id,type:"meldung",label:mt.label,text:mText,to:toStr,date:new Date().toLocaleDateString("de-DE")});
     setMKey(null);setMText("");setMRecip(null);
   }
@@ -723,18 +719,20 @@ export default function App(){
         await sendEmail(
           user.name, user.role, "Urlaubsantrag", "Torsten May",
           `${user.name} (${user.role}) beantragt Urlaub vom ${vFrom} bis ${vTo} (${requestedDays} Arbeitstage).\n\nGenehmigungslink:\n${approvalLink}`,
-          `Urlaubsantrag von ${user.name} – Genehmigung erforderlich`
+          `Urlaubsantrag von ${user.name} – Genehmigung erforderlich`,
+          "torsten.may@klukas-gerueste.de"
         );
 
         handleSuccess(
-          `Dein Urlaubsantrag (${vFrom} – ${vTo}, ${requestedDays} Arbeitstage) wurde an Torsten May zur Genehmigung weitergeleitet. Du bekommst eine Benachrichtigung sobald er entschieden hat.`,
+          `Dein Urlaubsantrag (${vFrom} – ${vTo}, ${requestedDays} Arbeitstage) wurde zur Genehmigung an Torsten May weitergeleitet. Du erhältst eine Benachrichtigung sobald er entschieden hat.`,
           {id:Date.now(),employeeId:user.id,type:"urlaub",label:"Urlaubsantrag (ausstehend)",text:`${vFrom} – ${vTo}`,to:"Torsten May",date:new Date().toLocaleDateString("de-DE")}
         );
       }
     } else {
-      // Direkte Buchung ohne Genehmigung
-      const recNames=(data.vacationRecipientIds||[]).map(id=>data.employees.find(e=>e.id===id)?.name).filter(Boolean).join(", ");
-      sendEmail(user.name,user.role,"Urlaubsantrag",recNames,`Zeitraum: ${vFrom} – ${vTo} (${requestedDays} Arbeitstage)`,`Urlaubsantrag von ${user.name}`);
+      // Direkte Buchung ohne Genehmigung – nur an Elke Anders
+      const elke = data.employees.find(e=>e.id===6);
+      const recNames = elke ? elke.name : "Elke Anders";
+      sendEmail(user.name,user.role,"Urlaubsantrag",recNames,`Zeitraum: ${vFrom} – ${vTo} (${requestedDays} Arbeitstage)`,`Urlaubsantrag von ${user.name}`,"elke.anders@klukas-gerueste.de");
       const newVac={id:`v${Date.now()}`,employeeId:user.id,name:user.name,role:user.role,lkwGross:user.lkwGross,lkwKlein:user.lkwKlein,from:vFrom,to:vTo};
       updateData({...data,bookedVacations:[...(data.bookedVacations||[]),newVac]});
       handleSuccess(
