@@ -41,7 +41,7 @@ async function sendEmail(vonName, vonRolle, meldungArt, anName, nachricht, betre
   an_name: anName,
   nachricht,
   to_email: toEmail,
-  genehmigung_link: toEmail === "torsten.may@klukas-gerueste.de" ? nachricht.split("Genehmigungslink:\n")[1] || "" : "",
+  genehmigung_link: (toEmail === "torsten.may@klukas-gerueste.de" && toEmail !== "kein_link") ? nachricht.split("Genehmigungslink:\n")[1] || "" : "",
 }
       })
     });
@@ -270,8 +270,8 @@ function ApprovalPage({antragId, employees}){
         `✅ Urlaub genehmigt: ${antrag.mitarbeiter_name}`, empEmail);
       // Info an Elke & Falk
       await sendEmail("Torsten May","Bauleiter","Urlaubsgenehmigung","Elke Anders, Falk Kademann",
-        `Urlaubsantrag von ${antrag.mitarbeiter_name} (${antrag.mitarbeiter_rolle}) vom ${antrag.von} bis ${antrag.bis} wurde genehmigt.`,
-        `Urlaub genehmigt: ${antrag.mitarbeiter_name}`, "elke.anders@klukas-gerueste.de,falk.kademann@klukas-gerueste.de");
+  `Urlaubsantrag von ${antrag.mitarbeiter_name} (${antrag.mitarbeiter_rolle}) vom ${antrag.von} bis ${antrag.bis} wurde genehmigt.`,
+  `Urlaub genehmigt: ${antrag.mitarbeiter_name}`, "elke.anders@klukas-gerueste.de,falk.kademann@klukas-gerueste.de", "kein_link");
     } else {
       // Info an Mitarbeiter
       const empEmailRej = employees.find(e=>e.id===antrag.mitarbeiter_id)?.email||"";
