@@ -21,7 +21,7 @@ async function supabase(method, table, data = null, filter = "") {
 
 // ─── EMAILJS ──────────────────────────────────────────────────────────────────
 const EMAILJS_PUBLIC = "LNWETx8iRbXRi2zvl";
-const EMAILJS_SERVICE = "service_pxg015l";
+const EMAILJS_SERVICE = "service_gxg015l";
 const EMAILJS_TEMPLATE = "template_av4scen";
 
 async function sendEmail(vonName, vonRolle, meldungArt, anName, nachricht, betreff) {
