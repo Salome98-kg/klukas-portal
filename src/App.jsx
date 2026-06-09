@@ -175,12 +175,11 @@ const S = {
 function Logo({size=1}){
   return (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2*size}}>
-      <svg width={80*size} height={55*size} viewBox="0 0 100 68">
-        <line x1="5" y1="38" x2="50" y2="5" stroke="#111" strokeWidth="4" strokeLinecap="round"/>
-        <line x1="50" y1="5" x2="95" y2="38" stroke="#111" strokeWidth="4" strokeLinecap="round"/>
-        <line x1="3" y1="38" x2="97" y2="38" stroke="#111" strokeWidth="4"/>
-        <text x="50" y="64" textAnchor="middle" style={{fontSize:34,fontWeight:900,fill:"#dc2626",fontFamily:"Arial Black,sans-serif"}}>KG</text>
-        <line x1="3" y1="68" x2="97" y2="68" stroke="#111" strokeWidth="3"/>
+      <svg width={80*size} height={58*size} viewBox="0 0 100 72">
+        <line x1="5" y1="35" x2="45" y2="5" stroke="#111" strokeWidth="4" strokeLinecap="round"/>
+        <line x1="45" y1="5" x2="95" y2="35" stroke="#111" strokeWidth="4" strokeLinecap="round"/>
+        <text x="52" y="68" textAnchor="middle" style={{fontSize:34,fontWeight:900,fill:"#dc2626",fontFamily:"Arial Black,sans-serif"}}>KG</text>
+        <line x1="3" y1="70" x2="97" y2="70" stroke="#111" strokeWidth="4"/>
       </svg>
       <div style={{textAlign:"center"}}>
         <div style={{fontSize:13*size,fontWeight:900,color:C.red,letterSpacing:"-0.3px",lineHeight:1.2}}>KLUKAS-GERÜSTE</div>
