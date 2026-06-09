@@ -68,13 +68,7 @@ const DEFAULT_EMPLOYEES = [
 
 const DEFAULT_RULES = { maxLkwGross:3, maxLkwKlein:1, maxVorarbeiter:2, blockedMonths:[11], summerBlock:{start:"2027-07-10",end:"2027-08-20"} };
 
-const DEFAULT_FIXED = [
-  {employeeIds:[21,17,18,12,22], from:"2027-07-12",to:"2027-07-30",label:"Gruppe A"},
-  {employeeIds:[19,15,16,14,13,20], from:"2027-08-02",to:"2027-08-20",label:"Gruppe B"},
-  {employeeIds:[9],  from:"2027-07-12",to:"2027-07-30",label:"Lager"},
-  {employeeIds:[11], from:"2027-07-19",to:"2027-08-06",label:"Lager"},
-  {employeeIds:[10], from:"2027-08-02",to:"2027-08-20",label:"Lager"},
-];
+const DEFAULT_FIXED = [];
 
 const DEFAULT_BOOKED = [];
 
