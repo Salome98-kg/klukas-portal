@@ -20,7 +20,7 @@ async function supabase(method, table, data = null, filter = "") {
 }
 
 // ─── EMAILJS ──────────────────────────────────────────────────────────────────
-async function sendEmail(vonName, vonRolle, meldungArt, anName, nachricht, betreff) {
+async function sendEmail(vonName, vonRolle, meldungArt, anName, nachricht, betreff, toEmail) {
   try {
     const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
       method: "POST",
@@ -30,13 +30,14 @@ async function sendEmail(vonName, vonRolle, meldungArt, anName, nachricht, betre
         template_id: "template_av4scen",
         user_id: "LNWETx8iRbXRi2zvl",
         template_params: {
-          betreff: betreff,
-          von_name: vonName,
-          von_rolle: vonRolle,
-          meldung_art: meldungArt,
-          an_name: anName,
-          nachricht: nachricht,
-        }
+  betreff: betreff,
+  von_name: vonName,
+  von_rolle: vonRolle,
+  meldung_art: meldungArt,
+  an_name: anName,
+  nachricht: nachricht,
+  to_email: toEmail,
+}
       })
     });
     console.log("Email status:", response.status);
