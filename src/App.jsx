@@ -76,11 +76,7 @@ const DEFAULT_FIXED = [
   {employeeIds:[10], from:"2027-08-02",to:"2027-08-20",label:"Lager"},
 ];
 
-const DEFAULT_BOOKED = [
-  {id:"v1",employeeId:15,name:"Linke, Andreas", role:"Monteur",    lkwGross:true, from:"2026-07-07",to:"2026-07-11"},
-  {id:"v2",employeeId:16,name:"Rasp, Oliver",   role:"Monteur",    lkwGross:true, from:"2026-07-14",to:"2026-07-18"},
-  {id:"v3",employeeId:19,name:"Ellmer, Holger", role:"Vorarbeiter",lkwGross:true, from:"2026-08-03",to:"2026-08-07"},
-];
+const DEFAULT_BOOKED = [];
 
 const DEFAULT_MELDUNGEN = [
   {key:"arbeitsmittel",icon:"🔧",label:"Arbeitsmittel",desc:"Fehlendes / defektes Material",recipientIds:[7],multiSelect:false},
