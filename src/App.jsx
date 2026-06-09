@@ -1,5 +1,24 @@
 import { useState, useEffect } from "react";
 
+// ─── SUPABASE ─────────────────────────────────────────────────────────────────
+const SUPABASE_URL = "https://wgyxwbrjrkyudkdyrqpj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_iiy75P-b6qe_2KLEN_M0Kg_CgdZkkkH";
+
+async function supabase(method, table, data = null, filter = "") {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${filter}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Prefer": method === "POST" ? "return=representation" : "",
+    },
+    body: data ? JSON.stringify(data) : undefined,
+  });
+  if (!res.ok) return null;
+  try { return await res.json(); } catch { return null; }
+}
+
 // ─── EMAILJS ──────────────────────────────────────────────────────────────────
 const EMAILJS_PUBLIC = "LNWETx8iRbXRi2zvl";
 const EMAILJS_SERVICE = "service_pxg015l";
@@ -29,18 +48,14 @@ function getInitials(name) {
   return ((p[1]?.[0]||"")+(p[0]?.[0]||"")).toUpperCase();
 }
 function dateInRange(ds,from,to){return ds>=from&&ds<=to;}
-
 function countWorkdays(from, to) {
-  let count = 0;
-  let d = new Date(from);
-  const end = new Date(to);
-  while (d <= end) {
-    const day = d.getDay();
-    if (day !== 0 && day !== 6) count++;
-    d.setDate(d.getDate() + 1);
-  }
+  let count = 0; let d = new Date(from); const end = new Date(to);
+  while(d<=end){const day=d.getDay();if(day!==0&&day!==6)count++;d.setDate(d.getDate()+1);}
   return count;
 }
+
+// Rollen die Genehmigung brauchen
+const APPROVAL_ROLES = ["Monteur","Vorarbeiter","Lagerist","Azubi"];
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 const DEFAULT_EMPLOYEES = [
@@ -86,7 +101,7 @@ const DEFAULT_MELDUNGEN = [
   {key:"krank",       icon:"🤒",label:"Krankmeldung",  desc:"Krankheit melden",             recipientIds:[4,3,6],multiSelect:false},
 ];
 const DEFAULT_VAC_RECIPIENTS = [3,4,6];
-const STORAGE_KEY = "klukas_v5";
+const STORAGE_KEY = "klukas_v6";
 const ROLES = ["GF","Bauleiter","Büro","Lagerist","Vorarbeiter","Monteur","Azubi"];
 
 function loadData() {
@@ -121,43 +136,29 @@ function getAllVacs(data){
 }
 
 function getUsedDays(employeeId, data) {
-  const allVacs = getAllVacs(data);
-  return allVacs
-    .filter(v => v.employeeId === employeeId)
-    .reduce((sum, v) => sum + countWorkdays(v.from, v.to), 0);
+  return getAllVacs(data).filter(v=>v.employeeId===employeeId).reduce((sum,v)=>sum+countWorkdays(v.from,v.to),0);
 }
 
 function checkConflict(from,to,emp,data){
   if(!from||!to||from>to) return null;
   const rules=data.rules;
-
-  // Dezember nur für bestimmte Rollen sperren
   let d=new Date(from); const end=new Date(to);
   while(d<=end){
-    if((rules.blockedMonths||[]).includes(d.getMonth())) {
-      const blockedRoles = rules.blockedRoles || [];
-      if(blockedRoles.length === 0 || blockedRoles.includes(emp.role)) {
-        return {msg:`Im ${d.toLocaleDateString("de-DE",{month:"long"})} ist für deine Gruppe kein Urlaub möglich.`};
-      }
+    if((rules.blockedMonths||[]).includes(d.getMonth())){
+      const br=rules.blockedRoles||[];
+      if(br.length===0||br.includes(emp.role)) return {msg:`Im ${d.toLocaleDateString("de-DE",{month:"long"})} ist für deine Gruppe kein Urlaub möglich.`};
     }
     d.setDate(d.getDate()+1);
   }
-
   const sb=rules.summerBlock;
   if(sb&&from<=sb.end&&to>=sb.start){
     const inGroup=(data.fixedVacations||[]).some(fv=>fv.employeeIds.includes(emp.id)&&from>=fv.from&&to<=fv.to);
     if(!inGroup) return {msg:"Sommerblock: Urlaub nur für eingeplante Gruppen möglich."};
   }
-
-  // Urlaubstage prüfen
-  const requestedDays = countWorkdays(from, to);
-  const usedDays = getUsedDays(emp.id, data);
-  const totalDays = emp.urlaubstage || 30;
-  const remainingDays = totalDays - usedDays;
-  if(requestedDays > remainingDays) {
-    return {msg:`Nicht genug Urlaubstage. Du hast noch ${remainingDays} Tage übrig, beantragst aber ${requestedDays} Tage.`};
-  }
-
+  const requestedDays=countWorkdays(from,to);
+  const usedDays=getUsedDays(emp.id,data);
+  const remaining=(emp.urlaubstage||30)-usedDays;
+  if(requestedDays>remaining) return {msg:`Nicht genug Urlaubstage. Du hast noch ${remaining} Tage übrig, beantragst aber ${requestedDays} Tage.`};
   const all=getAllVacs(data);
   function maxOv(fn){let m=0;let dd=new Date(from);while(dd<=new Date(to)){const ds=dd.toISOString().split("T")[0];const c=all.filter(v=>v.employeeId!==emp.id&&fn(v)&&dateInRange(ds,v.from,v.to)).length;if(c>m)m=c;dd.setDate(dd.getDate()+1);}return m;}
   if(emp.lkwGross&&maxOv(v=>v.lkwGross)>=rules.maxLkwGross) return {msg:`Bereits ${rules.maxLkwGross} LKW-Groß-Fahrer im Urlaub.`};
@@ -172,7 +173,7 @@ const C = {
   text:"#111827", textMid:"#374151", textLight:"#6b7280",
   red:"#dc2626", redLight:"#fef2f2", redBorder:"#fca5a5",
   green:"#16a34a", greenLight:"#f0fdf4", greenBorder:"#86efac",
-  amber:"#d97706",
+  amber:"#d97706", amberLight:"#fffbeb",
 };
 
 const S = {
@@ -185,7 +186,6 @@ const S = {
   label:{fontSize:10,color:C.textLight,marginBottom:5,fontWeight:700,letterSpacing:"0.5px",display:"block",textTransform:"uppercase"},
 };
 
-// ─── LOGO ─────────────────────────────────────────────────────────────────────
 function Logo({size=1}){
   return (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2*size}}>
@@ -208,25 +208,147 @@ function Avatar({emp,size=36}){
   return <div style={{width:size,height:size,borderRadius:"50%",background:c+"18",border:`2px solid ${c}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.3,fontWeight:700,color:c,flexShrink:0}}>{getInitials(emp.name)}</div>;
 }
 
-// ─── URLAUBSTAGE ANZEIGE ──────────────────────────────────────────────────────
-function VacationDaysBar({emp, data}){
-  const total = emp.urlaubstage || 30;
-  const used = getUsedDays(emp.id, data);
-  const remaining = total - used;
-  const pct = Math.min(100, (used/total)*100);
-  const color = remaining <= 5 ? C.red : remaining <= 10 ? C.amber : C.green;
+function VacationDaysBar({emp,data}){
+  const total=emp.urlaubstage||30;
+  const used=getUsedDays(emp.id,data);
+  const remaining=total-used;
+  const pct=Math.min(100,(used/total)*100);
+  const color=remaining<=5?C.red:remaining<=10?C.amber:C.green;
   return (
     <div style={{...S.card,marginBottom:14,padding:"12px 14px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
         <div style={{fontSize:12,fontWeight:700,color:C.text}}>Urlaubstage {new Date().getFullYear()}</div>
-        <div style={{fontSize:12,fontWeight:700,color}}>
-          {remaining} von {total} Tagen übrig
-        </div>
+        <div style={{fontSize:12,fontWeight:700,color}}>{remaining} von {total} Tagen übrig</div>
       </div>
       <div style={{background:C.bg,borderRadius:6,height:8,overflow:"hidden"}}>
         <div style={{background:color,height:"100%",width:`${pct}%`,borderRadius:6,transition:"width 0.3s"}}/>
       </div>
-      {used > 0 && <div style={{fontSize:10,color:C.textLight,marginTop:4}}>{used} Tage bereits gebucht</div>}
+      {used>0&&<div style={{fontSize:10,color:C.textLight,marginTop:4}}>{used} Tage bereits gebucht</div>}
+    </div>
+  );
+}
+
+// ─── GENEHMIGUNG SEITE ────────────────────────────────────────────────────────
+function ApprovalPage({antragId, employees}){
+  const [antrag, setAntrag] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [done, setDone] = useState(null);
+  const [processing, setProcessing] = useState(false);
+
+  useEffect(()=>{
+    async function load(){
+      const result = await supabase("GET", `urlaubsantraege?id=eq.${antragId}&select=*`);
+      if(result&&result.length>0) setAntrag(result[0]);
+      setLoading(false);
+    }
+    load();
+  },[antragId]);
+
+  async function decide(approved){
+    setProcessing(true);
+    const status = approved ? "genehmigt" : "abgelehnt";
+    await supabase("PATCH", `urlaubsantraege?id=eq.${antragId}`, {
+      status,
+      entschieden_am: new Date().toISOString()
+    });
+
+    const emp = employees.find(e=>e.id===antrag.mitarbeiter_id);
+    if(approved){
+      // Info an Mitarbeiter
+      await sendEmail("Torsten May","Bauleiter","Urlaubsgenehmigung",antrag.mitarbeiter_name,
+        `Dein Urlaubsantrag vom ${antrag.von} bis ${antrag.bis} (${antrag.arbeitstage} Arbeitstage) wurde GENEHMIGT.`,
+        `✅ Urlaub genehmigt: ${antrag.mitarbeiter_name}`);
+      // Info an Elke & Falk
+      await sendEmail("Torsten May","Bauleiter","Urlaubsgenehmigung","Elke Anders, Falk Kademann",
+        `Urlaubsantrag von ${antrag.mitarbeiter_name} (${antrag.mitarbeiter_rolle}) vom ${antrag.von} bis ${antrag.bis} wurde genehmigt.`,
+        `Urlaub genehmigt: ${antrag.mitarbeiter_name}`);
+    } else {
+      // Info an Mitarbeiter
+      await sendEmail("Torsten May","Bauleiter","Urlaubsablehnung",antrag.mitarbeiter_name,
+        `Dein Urlaubsantrag vom ${antrag.von} bis ${antrag.bis} wurde ABGELEHNT. Bitte wende dich an deinen Bauleiter.`,
+        `❌ Urlaub abgelehnt: ${antrag.mitarbeiter_name}`);
+    }
+    setDone(approved);
+    setProcessing(false);
+  }
+
+  if(loading) return (
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif"}}>
+      <div style={{fontSize:14,color:C.textLight}}>Lädt...</div>
+    </div>
+  );
+
+  if(!antrag) return (
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",padding:24}}>
+      <Logo size={1.2}/>
+      <div style={{marginTop:32,fontSize:16,color:C.red,fontWeight:700}}>Antrag nicht gefunden</div>
+    </div>
+  );
+
+  if(antrag.status==="genehmigt"||antrag.status==="abgelehnt") return (
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",padding:24}}>
+      <Logo size={1.2}/>
+      <div style={{marginTop:32,textAlign:"center"}}>
+        <div style={{fontSize:40,marginBottom:12}}>{antrag.status==="genehmigt"?"✅":"❌"}</div>
+        <div style={{fontSize:16,fontWeight:700,color:C.text}}>Dieser Antrag wurde bereits {antrag.status}.</div>
+      </div>
+    </div>
+  );
+
+  if(done!==null) return (
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",padding:24}}>
+      <Logo size={1.2}/>
+      <div style={{marginTop:32,textAlign:"center"}}>
+        <div style={{fontSize:50,marginBottom:12}}>{done?"✅":"❌"}</div>
+        <div style={{fontSize:18,fontWeight:800,color:C.text,marginBottom:8}}>
+          {done?"Urlaub genehmigt!":"Urlaub abgelehnt"}
+        </div>
+        <div style={{fontSize:13,color:C.textMid}}>
+          {antrag.mitarbeiter_name} wurde informiert.
+          {done&&" Elke Anders & Falk Kademann wurden ebenfalls informiert."}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'DM Sans',sans-serif",padding:24,display:"flex",flexDirection:"column",alignItems:"center"}}>
+      <div style={{marginBottom:28}}><Logo size={1.2}/></div>
+      <div style={{width:"100%",maxWidth:420}}>
+        <div style={{fontSize:18,fontWeight:800,color:C.text,marginBottom:4}}>Urlaubsantrag</div>
+        <div style={{fontSize:12,color:C.textLight,marginBottom:20}}>Bitte genehmige oder lehne den Antrag ab</div>
+        <div style={{...S.card,marginBottom:20}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16,paddingBottom:16,borderBottom:`1px solid ${C.border}`}}>
+            <div style={{width:44,height:44,borderRadius:"50%",background:C.red+"18",border:`2px solid ${C.red}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:C.red,flexShrink:0}}>
+              {antrag.mitarbeiter_name.split(", ").map(p=>p[0]).join("")}
+            </div>
+            <div>
+              <div style={{fontSize:14,fontWeight:700,color:C.text}}>{antrag.mitarbeiter_name}</div>
+              <div style={{fontSize:11,color:roleColor(antrag.mitarbeiter_rolle)}}>{antrag.mitarbeiter_rolle}</div>
+            </div>
+          </div>
+          {[
+            ["📅 Zeitraum", `${antrag.von} – ${antrag.bis}`],
+            ["⏱ Arbeitstage", `${antrag.arbeitstage} Tage`],
+            ["📝 Status", "Ausstehend"],
+          ].map(([l,v])=>(
+            <div key={l} style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+              <div style={{fontSize:12,color:C.textLight}}>{l}</div>
+              <div style={{fontSize:12,fontWeight:600,color:C.text}}>{v}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <button onClick={()=>decide(false)} disabled={processing}
+            style={{background:processing?"#e5e7eb":"#fff",border:`2px solid ${C.red}`,borderRadius:10,padding:"14px",color:C.red,fontWeight:700,fontSize:14,cursor:processing?"not-allowed":"pointer"}}>
+            ❌ Ablehnen
+          </button>
+          <button onClick={()=>decide(true)} disabled={processing}
+            style={{background:processing?"#e5e7eb":`linear-gradient(135deg,${C.green},#15803d)`,border:"none",borderRadius:10,padding:"14px",color:"#fff",fontWeight:700,fontSize:14,cursor:processing?"not-allowed":"pointer"}}>
+            ✅ Genehmigen
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -343,19 +465,17 @@ function EmpForm({emp:init,onSave,onCancel}){
     <div style={{background:C.bg,border:`1.5px solid ${C.redBorder}`,borderRadius:12,padding:14,marginBottom:10}}>
       <div style={{fontSize:12,fontWeight:700,color:C.red,marginBottom:12}}>{emp.id?"Bearbeiten":"Neuer Mitarbeiter"}</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-        {[["Name (Nachname, Vorname)","name"],["Rufname","firstName"],["E-Mail","email"],["Passwort","password"]].map(([l,k])=>(
+        {[["Name","name"],["Rufname","firstName"],["E-Mail","email"],["Passwort","password"]].map(([l,k])=>(
           <div key={k}><label style={S.label}>{l}</label><input value={emp[k]||""} onChange={e=>set(k,e.target.value)} style={{...S.input,fontSize:11,padding:"7px 8px"}}/></div>
         ))}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-        <div>
-          <label style={S.label}>Rolle</label>
+        <div><label style={S.label}>Rolle</label>
           <select value={emp.role} onChange={e=>set("role",e.target.value)} style={{...S.input,fontSize:11,padding:"7px 8px"}}>
             {ROLES.map(r=><option key={r} value={r}>{r}</option>)}
           </select>
         </div>
-        <div>
-          <label style={S.label}>Urlaubstage</label>
+        <div><label style={S.label}>Urlaubstage</label>
           <input type="number" value={emp.urlaubstage||30} onChange={e=>set("urlaubstage",parseInt(e.target.value))} style={{...S.input,fontSize:11,padding:"7px 8px"}}/>
         </div>
       </div>
@@ -380,6 +500,14 @@ function Admin({data,updateData,setView}){
   const [newEmp,setNewEmp]=useState(null);
   const [rules,setRules]=useState({...data.rules});
   const [saved,setSaved]=useState(false);
+  const [antraege,setAntraege]=useState([]);
+
+  useEffect(()=>{
+    if(tab==="antraege"){
+      supabase("GET","urlaubsantraege?order=erstellt_am.desc&select=*").then(r=>setAntraege(r||[]));
+    }
+  },[tab]);
+
   function saveEmp(emp){
     let emps;
     if(emp.id){emps=data.employees.map(e=>e.id===emp.id?emp:e);}
@@ -388,13 +516,14 @@ function Admin({data,updateData,setView}){
   }
   function delEmp(id){if(!confirm("Mitarbeiter wirklich löschen?")) return;updateData({...data,employees:data.employees.filter(e=>e.id!==id)});}
   function saveRules(){updateData({...data,rules});setSaved(true);setTimeout(()=>setSaved(false),2000);}
+
   return (
     <div>
       <button onClick={()=>setView("dashboard")} style={S.back}>‹ Zurück</button>
       <div style={{fontSize:18,fontWeight:800,marginBottom:2,color:C.text}}>⚙ Admin-Bereich</div>
       <div style={{fontSize:12,color:C.textLight,marginBottom:16}}>Nur für Administratoren</div>
-      <div style={{display:"flex",gap:6,marginBottom:18}}>
-        {[["employees","Mitarbeiter"],["rules","Regeln"],["sent","Meldungen"]].map(([k,l])=>(
+      <div style={{display:"flex",gap:6,marginBottom:18,flexWrap:"wrap"}}>
+        {[["employees","Mitarbeiter"],["rules","Regeln"],["sent","Meldungen"],["antraege","Urlaubsanträge"]].map(([k,l])=>(
           <button key={k} onClick={()=>setTab(k)} style={{background:tab===k?C.redLight:C.white,border:tab===k?`1.5px solid ${C.red}`:`1px solid ${C.border}`,borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:12,fontWeight:600,color:tab===k?C.red:C.textLight}}>
             {l}
           </button>
@@ -447,16 +576,11 @@ function Admin({data,updateData,setView}){
             ))}
           </div>
           <div style={{...S.card,marginBottom:12}}>
-            <div style={{fontSize:13,fontWeight:700,marginBottom:14,color:C.text}}>Dezember-Sperre</div>
-            <div style={{fontSize:12,color:C.textLight,marginBottom:10}}>Für welche Rollen gilt die Dezember-Sperre?</div>
+            <div style={{fontSize:13,fontWeight:700,marginBottom:10,color:C.text}}>Dezember-Sperre (für welche Rollen?)</div>
             {ROLES.map(role=>(
               <label key={role} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,cursor:"pointer"}}>
-                <input type="checkbox"
-                  checked={(rules.blockedRoles||[]).includes(role)}
-                  onChange={e=>{
-                    const br=rules.blockedRoles||[];
-                    setRules(p=>({...p,blockedRoles:e.target.checked?[...br,role]:br.filter(r=>r!==role)}));
-                  }}
+                <input type="checkbox" checked={(rules.blockedRoles||[]).includes(role)}
+                  onChange={e=>{const br=rules.blockedRoles||[];setRules(p=>({...p,blockedRoles:e.target.checked?[...br,role]:br.filter(r=>r!==role)}));}}
                   style={{accentColor:C.red}}/>
                 <span style={{fontSize:12,color:C.textMid}}>{role}</span>
               </label>
@@ -480,8 +604,8 @@ function Admin({data,updateData,setView}){
 
       {tab==="sent"&&(
         <div>
-          <div style={{fontSize:12,color:C.textLight,marginBottom:12}}>Alle eingegangenen Meldungen & Anträge</div>
-          {(data.sentItems||[]).length===0&&<div style={{textAlign:"center",color:C.textLight,fontSize:13,padding:24}}>Noch keine Meldungen vorhanden</div>}
+          <div style={{fontSize:12,color:C.textLight,marginBottom:12}}>Alle Meldungen & Anträge</div>
+          {(data.sentItems||[]).length===0&&<div style={{textAlign:"center",color:C.textLight,fontSize:13,padding:24}}>Noch keine Meldungen</div>}
           {[...(data.sentItems||[])].reverse().map((item,i)=>{
             const emp=data.employees.find(e=>e.id===item.employeeId);
             return (
@@ -493,6 +617,27 @@ function Admin({data,updateData,setView}){
                 <div style={{fontSize:11,color:C.textLight,marginBottom:4}}>Von: <span style={{color:C.text,fontWeight:600}}>{emp?.name||"?"}</span> ({emp?.role})</div>
                 <div style={{fontSize:11,color:C.textLight,marginBottom:item.text?6:0}}>An: <span style={{color:C.red,fontWeight:600}}>{item.to}</span></div>
                 {item.text&&<div style={{fontSize:11,color:C.textMid,background:C.bg,borderRadius:6,padding:"6px 8px",border:`1px solid ${C.border}`}}>{item.text}</div>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {tab==="antraege"&&(
+        <div>
+          <div style={{fontSize:12,color:C.textLight,marginBottom:12}}>Alle Urlaubsanträge aus Supabase</div>
+          {antraege.length===0&&<div style={{textAlign:"center",color:C.textLight,fontSize:13,padding:24}}>Noch keine Anträge vorhanden</div>}
+          {antraege.map((a,i)=>{
+            const statusColor = a.status==="genehmigt"?C.green:a.status==="abgelehnt"?C.red:C.amber;
+            const statusBg = a.status==="genehmigt"?C.greenLight:a.status==="abgelehnt"?C.redLight:C.amberLight;
+            return (
+              <div key={i} style={{...S.card,borderRadius:10,padding:12,marginBottom:8}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                  <div style={{fontSize:12,fontWeight:700,color:C.text}}>{a.mitarbeiter_name}</div>
+                  <span style={{fontSize:10,background:statusBg,color:statusColor,padding:"2px 8px",borderRadius:20,fontWeight:600,border:`1px solid ${statusColor}33`}}>{a.status}</span>
+                </div>
+                <div style={{fontSize:11,color:C.textLight,marginBottom:2}}>{a.mitarbeiter_rolle}</div>
+                <div style={{fontSize:11,color:C.textMid}}>{a.von} – {a.bis} · {a.arbeitstage} Arbeitstage</div>
               </div>
             );
           })}
@@ -517,6 +662,11 @@ export default function App(){
   const [calYear,setCalYear]=useState(new Date().getFullYear());
   const [calMonth,setCalMonth]=useState(new Date().getMonth());
 
+  // Genehmigungsseite prüfen
+  const urlParams = new URLSearchParams(window.location.search);
+  const antragId = urlParams.get("antrag");
+  if(antragId) return <ApprovalPage antragId={antragId} employees={data.employees}/>;
+
   useEffect(()=>{
     if(vFrom&&vTo&&user) setConflict(checkConflict(vFrom,vTo,user,data));
     else setConflict(null);
@@ -536,21 +686,55 @@ export default function App(){
     if(!canSend()) return;
     const recips=mt.multiSelect?[data.employees.find(e=>e.id===mRecip)?.name].filter(Boolean):getRecips(mt).map(r=>r.name);
     const toStr=recips.join(", ");
-    sendEmail(user.name, user.role, mt.label, toStr, mText, `${mt.label} von ${user.name}`);
+    sendEmail(user.name,user.role,mt.label,toStr,mText,`${mt.label} von ${user.name}`);
     handleSuccess(`Deine Meldung wurde weitergeleitet an: ${toStr}.`,{id:Date.now(),employeeId:user.id,type:"meldung",label:mt.label,text:mText,to:toStr,date:new Date().toLocaleDateString("de-DE")});
     setMKey(null);setMText("");setMRecip(null);
   }
 
-  function submitUrlaub(){
+  async function submitUrlaub(){
     if(!vFrom||!vTo||conflict) return;
-    const recNames=(data.vacationRecipientIds||[]).map(id=>data.employees.find(e=>e.id===id)?.name).filter(Boolean).join(", ");
-    const requestedDays = countWorkdays(vFrom, vTo);
-    sendEmail(user.name, user.role, "Urlaubsantrag", recNames, `Zeitraum: ${vFrom} – ${vTo} (${requestedDays} Arbeitstage)`, `Urlaubsantrag von ${user.name}`);
-    // Urlaub als gebucht speichern
-    const newVac = {id:`v${Date.now()}`,employeeId:user.id,name:user.name,role:user.role,lkwGross:user.lkwGross,lkwKlein:user.lkwKlein,from:vFrom,to:vTo};
-    const newData = {...data, bookedVacations:[...(data.bookedVacations||[]),newVac]};
-    updateData(newData);
-    handleSuccess(`Dein Urlaubsantrag (${vFrom} – ${vTo}, ${requestedDays} Arbeitstage) wurde an ${recNames} weitergeleitet.`,{id:Date.now(),employeeId:user.id,type:"urlaub",label:"Urlaubsantrag",text:`${vFrom} – ${vTo}`,to:recNames,date:new Date().toLocaleDateString("de-DE")});
+    const requestedDays=countWorkdays(vFrom,vTo);
+    const needsApproval=APPROVAL_ROLES.includes(user.role);
+
+    if(needsApproval){
+      // Antrag in Supabase speichern
+      const result = await supabase("POST","urlaubsantraege",{
+        mitarbeiter_id: user.id,
+        mitarbeiter_name: user.name,
+        mitarbeiter_rolle: user.role,
+        von: vFrom,
+        bis: vTo,
+        arbeitstage: requestedDays,
+        status: "ausstehend"
+      });
+
+      if(result&&result.length>0){
+        const antragId = result[0].id;
+        const approvalLink = `${window.location.origin}${window.location.pathname}?antrag=${antragId}`;
+
+        // E-Mail an Torsten May mit Genehmigungslink
+        await sendEmail(
+          user.name, user.role, "Urlaubsantrag", "Torsten May",
+          `${user.name} (${user.role}) beantragt Urlaub vom ${vFrom} bis ${vTo} (${requestedDays} Arbeitstage).\n\nGenehmigungslink:\n${approvalLink}`,
+          `Urlaubsantrag von ${user.name} – Genehmigung erforderlich`
+        );
+
+        handleSuccess(
+          `Dein Urlaubsantrag (${vFrom} – ${vTo}, ${requestedDays} Arbeitstage) wurde an Torsten May zur Genehmigung weitergeleitet. Du bekommst eine Benachrichtigung sobald er entschieden hat.`,
+          {id:Date.now(),employeeId:user.id,type:"urlaub",label:"Urlaubsantrag (ausstehend)",text:`${vFrom} – ${vTo}`,to:"Torsten May",date:new Date().toLocaleDateString("de-DE")}
+        );
+      }
+    } else {
+      // Direkte Buchung ohne Genehmigung
+      const recNames=(data.vacationRecipientIds||[]).map(id=>data.employees.find(e=>e.id===id)?.name).filter(Boolean).join(", ");
+      sendEmail(user.name,user.role,"Urlaubsantrag",recNames,`Zeitraum: ${vFrom} – ${vTo} (${requestedDays} Arbeitstage)`,`Urlaubsantrag von ${user.name}`);
+      const newVac={id:`v${Date.now()}`,employeeId:user.id,name:user.name,role:user.role,lkwGross:user.lkwGross,lkwKlein:user.lkwKlein,from:vFrom,to:vTo};
+      updateData({...data,bookedVacations:[...(data.bookedVacations||[]),newVac]});
+      handleSuccess(
+        `Dein Urlaubsantrag (${vFrom} – ${vTo}, ${requestedDays} Arbeitstage) wurde an ${recNames} weitergeleitet.`,
+        {id:Date.now(),employeeId:user.id,type:"urlaub",label:"Urlaubsantrag",text:`${vFrom} – ${vTo}`,to:recNames,date:new Date().toLocaleDateString("de-DE")}
+      );
+    }
     setVFrom("");setVTo("");
   }
 
@@ -558,7 +742,8 @@ export default function App(){
   const today=new Date().toISOString().split("T")[0];
   const upcoming=allVacs.filter(v=>v.to>=today).slice(0,5);
   const myItems=(data.sentItems||[]).filter(s=>s.employeeId===user.id).slice(-3).reverse();
-  const requestedDays = vFrom&&vTo&&vFrom<=vTo ? countWorkdays(vFrom,vTo) : 0;
+  const requestedDays=vFrom&&vTo&&vFrom<=vTo?countWorkdays(vFrom,vTo):0;
+  const needsApproval=APPROVAL_ROLES.includes(user.role);
 
   return (
     <div style={S.page}>
@@ -640,7 +825,7 @@ export default function App(){
                     <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                       {getRecips(mt).map(r=>(
                         <button key={r.id} onClick={()=>setMRecip(r.id)}
-                          style={{background:mRecip===r.id?C.redLight:C.white,border:mRecip===r.id?`1.5px solid ${C.red}`:`1px solid ${C.border}`,borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:11,color:mRecip===r.id?C.red:C.textMid,fontWeight:mRecip===r.id?600:400,transition:"all 0.15s"}}>
+                          style={{background:mRecip===r.id?C.redLight:C.white,border:mRecip===r.id?`1.5px solid ${C.red}`:`1px solid ${C.border}`,borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:11,color:mRecip===r.id?C.red:C.textMid,fontWeight:mRecip===r.id?600:400}}>
                           {r.firstName} {r.name.split(", ")[0]}
                         </button>
                       ))}
@@ -667,6 +852,12 @@ export default function App(){
             <div style={{fontSize:19,fontWeight:800,marginBottom:2,color:C.text}}>Urlaub beantragen</div>
             <div style={{fontSize:12,color:C.textLight,marginBottom:16}}>Zeitraum wählen & Verfügbarkeit prüfen</div>
 
+            {needsApproval&&(
+              <div style={{...S.card,background:C.amberLight,border:`1px solid #fcd34d`,marginBottom:14,padding:"10px 14px",fontSize:12,color:"#92400e"}}>
+                ⏳ Dein Antrag wird zuerst von <strong>Torsten May</strong> geprüft. Du bekommst eine E-Mail nach der Entscheidung.
+              </div>
+            )}
+
             <VacationDaysBar emp={user} data={data}/>
 
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
@@ -677,8 +868,8 @@ export default function App(){
               ))}
             </div>
 
-            {requestedDays > 0 && (
-              <div style={{...S.card,marginBottom:14,padding:"10px 14px",background:"#f8faff",border:`1px solid #dbeafe`}}>
+            {requestedDays>0&&(
+              <div style={{...S.card,marginBottom:14,padding:"10px 14px",background:"#f8faff",border:"1px solid #dbeafe"}}>
                 <div style={{fontSize:12,color:"#1d4ed8",fontWeight:600}}>📅 {requestedDays} Arbeitstage beantragt</div>
               </div>
             )}
@@ -712,7 +903,7 @@ export default function App(){
 
             <button onClick={submitUrlaub} disabled={!vFrom||!vTo||vFrom>vTo||!!conflict}
               style={{...S.btn,background:(!vFrom||!vTo||vFrom>vTo||!!conflict)?"#e5e7eb":`linear-gradient(135deg,${C.red},#b91c1c)`,color:(!vFrom||!vTo||vFrom>vTo||!!conflict)?C.textLight:"#fff"}}>
-              Urlaubsantrag senden ›
+              {needsApproval?"Urlaubsantrag einreichen ›":"Urlaubsantrag senden ›"}
             </button>
           </div>
         )}
