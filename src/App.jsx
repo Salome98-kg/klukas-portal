@@ -713,7 +713,7 @@ export default function App(){
 
       if(result&&result.length>0){
         const antragId = result[0].id;
-        const approvalLink = `${window.location.origin}${window.location.pathname}?antrag=${antragId}`;
+        const approvalLink = `https://klukas-portal.vercel.app/?antrag=${antragId}`;
 
         // E-Mail an Torsten May mit Genehmigungslink
         await sendEmail(
