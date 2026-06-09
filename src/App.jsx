@@ -177,6 +177,7 @@ function Logo({size=1}){
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2*size}}>
       <svg width={80*size} height={60*size} viewBox="0 0 100 75">
         <line x1="15" y1="30" x2="50" y2="4" stroke="#111" strokeWidth="4" strokeLinecap="round"/>
+        <line x1="50" y1="4" x2="85" y2="30" stroke="#111" strokeWidth="4" strokeLinecap="round"/>
         <line x1="10" y1="30" x2="90" y2="30" stroke="#111" strokeWidth="4"/>
         <text x="50" y="62" textAnchor="middle" style={{fontSize:38,fontWeight:900,fill:"#dc2626",fontFamily:"Arial Black,sans-serif"}}>KG</text>
         <line x1="10" y1="68" x2="90" y2="68" stroke="#111" strokeWidth="3"/>
