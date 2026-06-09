@@ -33,7 +33,8 @@ async function sendEmail(vonName, vonRolle, meldungArt, anName, nachricht, betre
         service_id: EMAILJS_SERVICE,
         template_id: EMAILJS_TEMPLATE,
         user_id: EMAILJS_PUBLIC,
-        template_params: { betreff, von_name: vonName, von_rolle: vonRolle, meldung_art: meldungArt, an_name: anName, nachricht, to_email: toEmail }
+        template_params: { betreff, von_name: vonName, von_rolle: vonRolle, meldung_art: meldungArt, an_name: anName, nachricht, to_email: toEmail 
+                         genehmigung_link: toEmail === "torsten.may@klukas-gerueste.de" ? nachricht.split("Genehmigungslink:\n")[1] || "" : "",}
       })
     });
   } catch(e) { console.error("Email error:", e); }
