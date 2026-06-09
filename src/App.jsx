@@ -14,14 +14,7 @@ async function sendEmail(vonName, vonRolle, meldungArt, anName, nachricht, betre
         service_id: EMAILJS_SERVICE,
         template_id: EMAILJS_TEMPLATE,
         user_id: EMAILJS_PUBLIC,
-        template_params: {
-          betreff: betreff,
-          von_name: vonName,
-          von_rolle: vonRolle,
-          meldung_art: meldungArt,
-          an_name: anName,
-          nachricht: nachricht,
-        }
+        template_params: { betreff, von_name: vonName, von_rolle: vonRolle, meldung_art: meldungArt, an_name: anName, nachricht }
       })
     });
   } catch(e) { console.error("Email error:", e); }
@@ -37,49 +30,63 @@ function getInitials(name) {
 }
 function dateInRange(ds,from,to){return ds>=from&&ds<=to;}
 
+function countWorkdays(from, to) {
+  let count = 0;
+  let d = new Date(from);
+  const end = new Date(to);
+  while (d <= end) {
+    const day = d.getDay();
+    if (day !== 0 && day !== 6) count++;
+    d.setDate(d.getDate() + 1);
+  }
+  return count;
+}
+
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 const DEFAULT_EMPLOYEES = [
-  {id:1,  name:"Klukas, Ralf",       firstName:"Ralf",      role:"GF",          email:"ralf.klukas@klukas-gerueste.de",       lkwGross:true,  lkwKlein:false,pkw:true,  password:"ralf2024",      isAdmin:true },
-  {id:2,  name:"Gulde, Thomas",       firstName:"Thomas",    role:"GF",          email:"thomas.gulde@klukas-gerueste.de",       lkwGross:false, lkwKlein:true, pkw:true,  password:"thomas2024",    isAdmin:true },
-  {id:3,  name:"May, Torsten",        firstName:"Torsten",   role:"Bauleiter",   email:"torsten.may@klukas-gerueste.de",        lkwGross:true,  lkwKlein:false,pkw:false, password:"torsten2024",   isAdmin:false},
-  {id:4,  name:"Kademann, Falk",      firstName:"Falk",      role:"Bauleiter",   email:"falk.kademann@klukas-gerueste.de",      lkwGross:false, lkwKlein:true, pkw:true,  password:"falk2024",      isAdmin:false},
-  {id:5,  name:"Brausewetter, Maik",  firstName:"Maik",      role:"Bauleiter",   email:"maik.brausewetter@klukas-gerueste.de",  lkwGross:false, lkwKlein:false,pkw:true,  password:"maik2024",      isAdmin:false},
-  {id:6,  name:"Anders, Elke",        firstName:"Elke",      role:"Büro",        email:"elke.anders@klukas-gerueste.de",        lkwGross:false, lkwKlein:false,pkw:true,  password:"elke2024",      isAdmin:false},
-  {id:7,  name:"Dörschel, Angela",    firstName:"Angela",    role:"Büro",        email:"angela.doerschel@klukas-gerueste.de",   lkwGross:false, lkwKlein:false,pkw:true,  password:"angela2024",    isAdmin:false},
-  {id:8,  name:"Fuchs, Salome",       firstName:"Salome",    role:"Büro",        email:"salome.fuchs@klukas-gerueste.de",       lkwGross:false, lkwKlein:false,pkw:true,  password:"salome2024",    isAdmin:true },
-  {id:9,  name:"Gillhoff, Oliver",    firstName:"Oliver",    role:"Lagerist",    email:"oliver.gillhoff@klukas-gerueste.de",    lkwGross:true,  lkwKlein:true, pkw:true,  password:"oliver2024",    isAdmin:false},
-  {id:10, name:"Dörschel, Tobias",    firstName:"Tobias",    role:"Lagerist",    email:"tobias.doerschel@klukas-gerueste.de",   lkwGross:false, lkwKlein:false,pkw:true,  password:"tobias2024",    isAdmin:false},
-  {id:11, name:"Hagedorn, Marko",     firstName:"Marko",     role:"Lagerist",    email:"marko.hagedorn@klukas-gerueste.de",     lkwGross:false, lkwKlein:false,pkw:true,  password:"marko2024",     isAdmin:false},
-  {id:12, name:"Schimank, Frank",     firstName:"Frank",     role:"Vorarbeiter", email:"frank.schimank@klukas-gerueste.de",     lkwGross:false, lkwKlein:true, pkw:true,  password:"frankS2024",    isAdmin:false},
-  {id:13, name:"Schmidt, Frank",      firstName:"Frank",     role:"Vorarbeiter", email:"frank.schmidt@klukas-gerueste.de",      lkwGross:false, lkwKlein:false,pkw:false, password:"frankSC2024",   isAdmin:false},
-  {id:14, name:"Lehmann, Jan",        firstName:"Jan",       role:"Monteur",     email:"jan.lehmann@klukas-gerueste.de",        lkwGross:false, lkwKlein:true, pkw:true,  password:"jan2024",       isAdmin:false},
-  {id:15, name:"Linke, Andreas",      firstName:"Andreas",   role:"Monteur",     email:"andreas.linke@klukas-gerueste.de",      lkwGross:true,  lkwKlein:true, pkw:true,  password:"andreas2024",   isAdmin:false},
-  {id:16, name:"Rasp, Oliver",        firstName:"Oliver",    role:"Monteur",     email:"oliver.rasp@klukas-gerueste.de",        lkwGross:true,  lkwKlein:true, pkw:true,  password:"oliverR2024",   isAdmin:false},
-  {id:17, name:"Geiger, Charly",      firstName:"Charly",    role:"Monteur",     email:"charly.geiger@klukas-gerueste.de",      lkwGross:true,  lkwKlein:true, pkw:true,  password:"charly2024",    isAdmin:false},
-  {id:18, name:"Böttcher, Harley",    firstName:"Harley",    role:"Monteur",     email:"harley.boettcher@klukas-gerueste.de",   lkwGross:true,  lkwKlein:true, pkw:true,  password:"harley2024",    isAdmin:false},
-  {id:19, name:"Ellmer, Holger",      firstName:"Holger",    role:"Vorarbeiter", email:"holger.ellmer@klukas-gerueste.de",      lkwGross:true,  lkwKlein:true, pkw:true,  password:"holger2024",    isAdmin:false},
-  {id:20, name:"Weiß, Alexandra",     firstName:"Alexandra", role:"Monteur",     email:"alexandra.weiss@klukas-gerueste.de",    lkwGross:false, lkwKlein:false,pkw:true,  password:"alexandra2024", isAdmin:false},
-  {id:21, name:"Eschmann, Anton",     firstName:"Anton",     role:"Vorarbeiter", email:"anton.eschmann@klukas-gerueste.de",     lkwGross:true,  lkwKlein:true, pkw:true,  password:"anton2024",     isAdmin:false},
-  {id:22, name:"Graf, René",          firstName:"René",      role:"Monteur",     email:"rene.graf@klukas-gerueste.de",          lkwGross:false, lkwKlein:false,pkw:true,  password:"rene2024",      isAdmin:false},
-  {id:23, name:"Geiger, Florian",     firstName:"Florian",   role:"Azubi",       email:"florian.geiger@klukas-gerueste.de",     lkwGross:false, lkwKlein:false,pkw:false, password:"florian2024",   isAdmin:false},
-  {id:24, name:"Ergin, Mehmet",       firstName:"Mehmet",    role:"Azubi",       email:"mehmet.ergin@klukas-gerueste.de",       lkwGross:false, lkwKlein:false,pkw:true,  password:"mehmet2024",    isAdmin:false},
-  {id:25, name:"Pietsch, Kay",        firstName:"Kay",       role:"Azubi",       email:"kay.pietsch@klukas-gerueste.de",        lkwGross:false, lkwKlein:false,pkw:false, password:"kay2024",       isAdmin:false},
+  {id:1,  name:"Klukas, Ralf",       firstName:"Ralf",      role:"GF",          email:"ralf.klukas@klukas-gerueste.de",       lkwGross:true,  lkwKlein:false,pkw:true,  password:"ralf2024",      isAdmin:true,  urlaubstage:25},
+  {id:2,  name:"Gulde, Thomas",       firstName:"Thomas",    role:"GF",          email:"thomas.gulde@klukas-gerueste.de",       lkwGross:false, lkwKlein:true, pkw:true,  password:"thomas2024",    isAdmin:true,  urlaubstage:25},
+  {id:3,  name:"May, Torsten",        firstName:"Torsten",   role:"Bauleiter",   email:"torsten.may@klukas-gerueste.de",        lkwGross:true,  lkwKlein:false,pkw:false, password:"torsten2024",   isAdmin:false, urlaubstage:30},
+  {id:4,  name:"Kademann, Falk",      firstName:"Falk",      role:"Bauleiter",   email:"falk.kademann@klukas-gerueste.de",      lkwGross:false, lkwKlein:true, pkw:true,  password:"falk2024",      isAdmin:false, urlaubstage:25},
+  {id:5,  name:"Brausewetter, Maik",  firstName:"Maik",      role:"Bauleiter",   email:"maik.brausewetter@klukas-gerueste.de",  lkwGross:false, lkwKlein:false,pkw:true,  password:"maik2024",      isAdmin:false, urlaubstage:25},
+  {id:6,  name:"Anders, Elke",        firstName:"Elke",      role:"Büro",        email:"elke.anders@klukas-gerueste.de",        lkwGross:false, lkwKlein:false,pkw:true,  password:"elke2024",      isAdmin:false, urlaubstage:30},
+  {id:7,  name:"Dörschel, Angela",    firstName:"Angela",    role:"Büro",        email:"angela.doerschel@klukas-gerueste.de",   lkwGross:false, lkwKlein:false,pkw:true,  password:"angela2024",    isAdmin:false, urlaubstage:30},
+  {id:8,  name:"Fuchs, Salome",       firstName:"Salome",    role:"Büro",        email:"salome.fuchs@klukas-gerueste.de",       lkwGross:false, lkwKlein:false,pkw:true,  password:"salome2024",    isAdmin:true,  urlaubstage:26},
+  {id:9,  name:"Gillhoff, Oliver",    firstName:"Oliver",    role:"Lagerist",    email:"oliver.gillhoff@klukas-gerueste.de",    lkwGross:true,  lkwKlein:true, pkw:true,  password:"oliver2024",    isAdmin:false, urlaubstage:30},
+  {id:10, name:"Dörschel, Tobias",    firstName:"Tobias",    role:"Lagerist",    email:"tobias.doerschel@klukas-gerueste.de",   lkwGross:false, lkwKlein:false,pkw:true,  password:"tobias2024",    isAdmin:false, urlaubstage:30},
+  {id:11, name:"Hagedorn, Marko",     firstName:"Marko",     role:"Lagerist",    email:"marko.hagedorn@klukas-gerueste.de",     lkwGross:false, lkwKlein:false,pkw:true,  password:"marko2024",     isAdmin:false, urlaubstage:30},
+  {id:12, name:"Schimank, Frank",     firstName:"Frank",     role:"Vorarbeiter", email:"frank.schimank@klukas-gerueste.de",     lkwGross:false, lkwKlein:true, pkw:true,  password:"frankS2024",    isAdmin:false, urlaubstage:30},
+  {id:13, name:"Schmidt, Frank",      firstName:"Frank",     role:"Vorarbeiter", email:"frank.schmidt@klukas-gerueste.de",      lkwGross:false, lkwKlein:false,pkw:false, password:"frankSC2024",   isAdmin:false, urlaubstage:30},
+  {id:14, name:"Lehmann, Jan",        firstName:"Jan",       role:"Monteur",     email:"jan.lehmann@klukas-gerueste.de",        lkwGross:false, lkwKlein:true, pkw:true,  password:"jan2024",       isAdmin:false, urlaubstage:30},
+  {id:15, name:"Linke, Andreas",      firstName:"Andreas",   role:"Monteur",     email:"andreas.linke@klukas-gerueste.de",      lkwGross:true,  lkwKlein:true, pkw:true,  password:"andreas2024",   isAdmin:false, urlaubstage:30},
+  {id:16, name:"Rasp, Oliver",        firstName:"Oliver",    role:"Monteur",     email:"oliver.rasp@klukas-gerueste.de",        lkwGross:true,  lkwKlein:true, pkw:true,  password:"oliverR2024",   isAdmin:false, urlaubstage:30},
+  {id:17, name:"Geiger, Charly",      firstName:"Charly",    role:"Monteur",     email:"charly.geiger@klukas-gerueste.de",      lkwGross:true,  lkwKlein:true, pkw:true,  password:"charly2024",    isAdmin:false, urlaubstage:30},
+  {id:18, name:"Böttcher, Harley",    firstName:"Harley",    role:"Monteur",     email:"harley.boettcher@klukas-gerueste.de",   lkwGross:true,  lkwKlein:true, pkw:true,  password:"harley2024",    isAdmin:false, urlaubstage:30},
+  {id:19, name:"Ellmer, Holger",      firstName:"Holger",    role:"Vorarbeiter", email:"holger.ellmer@klukas-gerueste.de",      lkwGross:true,  lkwKlein:true, pkw:true,  password:"holger2024",    isAdmin:false, urlaubstage:30},
+  {id:20, name:"Weiß, Alexandra",     firstName:"Alexandra", role:"Monteur",     email:"alexandra.weiss@klukas-gerueste.de",    lkwGross:false, lkwKlein:false,pkw:true,  password:"alexandra2024", isAdmin:false, urlaubstage:30},
+  {id:21, name:"Eschmann, Anton",     firstName:"Anton",     role:"Vorarbeiter", email:"anton.eschmann@klukas-gerueste.de",     lkwGross:true,  lkwKlein:true, pkw:true,  password:"anton2024",     isAdmin:false, urlaubstage:30},
+  {id:22, name:"Graf, René",          firstName:"René",      role:"Monteur",     email:"rene.graf@klukas-gerueste.de",          lkwGross:false, lkwKlein:false,pkw:true,  password:"rene2024",      isAdmin:false, urlaubstage:30},
+  {id:23, name:"Geiger, Florian",     firstName:"Florian",   role:"Azubi",       email:"florian.geiger@klukas-gerueste.de",     lkwGross:false, lkwKlein:false,pkw:false, password:"florian2024",   isAdmin:false, urlaubstage:30},
+  {id:24, name:"Ergin, Mehmet",       firstName:"Mehmet",    role:"Azubi",       email:"mehmet.ergin@klukas-gerueste.de",       lkwGross:false, lkwKlein:false,pkw:true,  password:"mehmet2024",    isAdmin:false, urlaubstage:30},
+  {id:25, name:"Pietsch, Kay",        firstName:"Kay",       role:"Azubi",       email:"kay.pietsch@klukas-gerueste.de",        lkwGross:false, lkwKlein:false,pkw:false, password:"kay2024",       isAdmin:false, urlaubstage:30},
 ];
 
-const DEFAULT_RULES = { maxLkwGross:3, maxLkwKlein:1, maxVorarbeiter:2, blockedMonths:[11], summerBlock:{start:"2027-07-10",end:"2027-08-20"} };
+const DEFAULT_RULES = {
+  maxLkwGross:3, maxLkwKlein:1, maxVorarbeiter:2,
+  blockedMonths:[11],
+  blockedRoles:["Monteur","Lagerist","Azubi"],
+  summerBlock:{start:"2027-07-10",end:"2027-08-20"}
+};
 
 const DEFAULT_FIXED = [];
-
 const DEFAULT_BOOKED = [];
-
 const DEFAULT_MELDUNGEN = [
   {key:"arbeitsmittel",icon:"🔧",label:"Arbeitsmittel",desc:"Fehlendes / defektes Material",recipientIds:[7],multiSelect:false},
   {key:"gespraech",   icon:"💬",label:"Gespräch",      desc:"Gesprächswunsch",              recipientIds:[1,2,3,4,5],multiSelect:true,coordinatorId:8},
   {key:"krank",       icon:"🤒",label:"Krankmeldung",  desc:"Krankheit melden",             recipientIds:[4,3,6],multiSelect:false},
 ];
-
 const DEFAULT_VAC_RECIPIENTS = [3,4,6];
-const STORAGE_KEY = "klukas_v4";
+const STORAGE_KEY = "klukas_v5";
 const ROLES = ["GF","Bauleiter","Büro","Lagerist","Vorarbeiter","Monteur","Azubi"];
 
 function loadData() {
@@ -113,29 +120,46 @@ function getAllVacs(data){
   return all;
 }
 
+function getUsedDays(employeeId, data) {
+  const allVacs = getAllVacs(data);
+  return allVacs
+    .filter(v => v.employeeId === employeeId)
+    .reduce((sum, v) => sum + countWorkdays(v.from, v.to), 0);
+}
+
 function checkConflict(from,to,emp,data){
   if(!from||!to||from>to) return null;
   const rules=data.rules;
+
+  // Dezember nur für bestimmte Rollen sperren
   let d=new Date(from); const end=new Date(to);
   while(d<=end){
-    if((rules.blockedMonths||[]).includes(d.getMonth())) return {msg:`Im ${d.toLocaleDateString("de-DE",{month:"long"})} ist kein Urlaub möglich.`};
+    if((rules.blockedMonths||[]).includes(d.getMonth())) {
+      const blockedRoles = rules.blockedRoles || [];
+      if(blockedRoles.length === 0 || blockedRoles.includes(emp.role)) {
+        return {msg:`Im ${d.toLocaleDateString("de-DE",{month:"long"})} ist für deine Gruppe kein Urlaub möglich.`};
+      }
+    }
     d.setDate(d.getDate()+1);
   }
+
   const sb=rules.summerBlock;
   if(sb&&from<=sb.end&&to>=sb.start){
     const inGroup=(data.fixedVacations||[]).some(fv=>fv.employeeIds.includes(emp.id)&&from>=fv.from&&to<=fv.to);
     if(!inGroup) return {msg:"Sommerblock: Urlaub nur für eingeplante Gruppen möglich."};
   }
-  const all=getAllVacs(data);
-  function maxOv(fn){
-    let m=0; let dd=new Date(from);
-    while(dd<=new Date(to)){
-      const ds=dd.toISOString().split("T")[0];
-      const c=all.filter(v=>v.employeeId!==emp.id&&fn(v)&&dateInRange(ds,v.from,v.to)).length;
-      if(c>m)m=c; dd.setDate(dd.getDate()+1);
-    }
-    return m;
+
+  // Urlaubstage prüfen
+  const requestedDays = countWorkdays(from, to);
+  const usedDays = getUsedDays(emp.id, data);
+  const totalDays = emp.urlaubstage || 30;
+  const remainingDays = totalDays - usedDays;
+  if(requestedDays > remainingDays) {
+    return {msg:`Nicht genug Urlaubstage. Du hast noch ${remainingDays} Tage übrig, beantragst aber ${requestedDays} Tage.`};
   }
+
+  const all=getAllVacs(data);
+  function maxOv(fn){let m=0;let dd=new Date(from);while(dd<=new Date(to)){const ds=dd.toISOString().split("T")[0];const c=all.filter(v=>v.employeeId!==emp.id&&fn(v)&&dateInRange(ds,v.from,v.to)).length;if(c>m)m=c;dd.setDate(dd.getDate()+1);}return m;}
   if(emp.lkwGross&&maxOv(v=>v.lkwGross)>=rules.maxLkwGross) return {msg:`Bereits ${rules.maxLkwGross} LKW-Groß-Fahrer im Urlaub.`};
   if(emp.lkwKlein&&!emp.lkwGross&&maxOv(v=>v.lkwKlein&&!v.lkwGross)>=rules.maxLkwKlein) return {msg:`Bereits ${rules.maxLkwKlein} LKW-Klein-Fahrer im Urlaub.`};
   if(emp.role==="Vorarbeiter"&&maxOv(v=>v.role==="Vorarbeiter")>=rules.maxVorarbeiter) return {msg:`Bereits ${rules.maxVorarbeiter} Vorarbeiter im Urlaub.`};
@@ -178,10 +202,33 @@ function Logo({size=1}){
     </div>
   );
 }
-// ─── AVATAR ───────────────────────────────────────────────────────────────────
+
 function Avatar({emp,size=36}){
   const c=roleColor(emp.role);
   return <div style={{width:size,height:size,borderRadius:"50%",background:c+"18",border:`2px solid ${c}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.3,fontWeight:700,color:c,flexShrink:0}}>{getInitials(emp.name)}</div>;
+}
+
+// ─── URLAUBSTAGE ANZEIGE ──────────────────────────────────────────────────────
+function VacationDaysBar({emp, data}){
+  const total = emp.urlaubstage || 30;
+  const used = getUsedDays(emp.id, data);
+  const remaining = total - used;
+  const pct = Math.min(100, (used/total)*100);
+  const color = remaining <= 5 ? C.red : remaining <= 10 ? C.amber : C.green;
+  return (
+    <div style={{...S.card,marginBottom:14,padding:"12px 14px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+        <div style={{fontSize:12,fontWeight:700,color:C.text}}>Urlaubstage {new Date().getFullYear()}</div>
+        <div style={{fontSize:12,fontWeight:700,color}}>
+          {remaining} von {total} Tagen übrig
+        </div>
+      </div>
+      <div style={{background:C.bg,borderRadius:6,height:8,overflow:"hidden"}}>
+        <div style={{background:color,height:"100%",width:`${pct}%`,borderRadius:6,transition:"width 0.3s"}}/>
+      </div>
+      {used > 0 && <div style={{fontSize:10,color:C.textLight,marginTop:4}}>{used} Tage bereits gebucht</div>}
+    </div>
+  );
 }
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
@@ -252,8 +299,10 @@ function Calendar({year,month,onChangeMonth,vacFrom,vacTo,conflict,user,data}){
     const ds=`${year}-${String(month+1).padStart(2,"0")}-${String(n).padStart(2,"0")}`;
     const sel=vacFrom&&vacTo&&vacFrom<=ds&&ds<=vacTo;
     const busy=allVacs.some(v=>v.employeeId!==user.id&&dateInRange(ds,v.from,v.to));
-    const blk=(data.rules?.blockedMonths||[]).includes(month);
-    const sb=data.rules?.summerBlock; const sum=sb&&ds>=sb.start&&ds<=sb.end;
+    const rules=data.rules;
+    const d=new Date(ds);
+    const blk=(rules.blockedMonths||[]).includes(d.getMonth())&&(rules.blockedRoles||[]).includes(user.role);
+    const sb=rules.summerBlock; const sum=sb&&ds>=sb.start&&ds<=sb.end;
     if(sel&&conflict) return {bg:C.redLight,bd:`1.5px solid ${C.red}`,c:C.red};
     if(sel) return {bg:C.greenLight,bd:"1.5px solid #16a34a",c:"#16a34a"};
     if(blk) return {bg:C.redLight,bd:`1px solid ${C.border}`,c:"#fca5a5"};
@@ -298,11 +347,17 @@ function EmpForm({emp:init,onSave,onCancel}){
           <div key={k}><label style={S.label}>{l}</label><input value={emp[k]||""} onChange={e=>set(k,e.target.value)} style={{...S.input,fontSize:11,padding:"7px 8px"}}/></div>
         ))}
       </div>
-      <div style={{marginBottom:8}}>
-        <label style={S.label}>Rolle</label>
-        <select value={emp.role} onChange={e=>set("role",e.target.value)} style={{...S.input,fontSize:11,padding:"7px 8px"}}>
-          {ROLES.map(r=><option key={r} value={r}>{r}</option>)}
-        </select>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+        <div>
+          <label style={S.label}>Rolle</label>
+          <select value={emp.role} onChange={e=>set("role",e.target.value)} style={{...S.input,fontSize:11,padding:"7px 8px"}}>
+            {ROLES.map(r=><option key={r} value={r}>{r}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={S.label}>Urlaubstage</label>
+          <input type="number" value={emp.urlaubstage||30} onChange={e=>set("urlaubstage",parseInt(e.target.value))} style={{...S.input,fontSize:11,padding:"7px 8px"}}/>
+        </div>
       </div>
       <div style={{display:"flex",gap:12,marginBottom:12,flexWrap:"wrap"}}>
         {[["LKW Groß","lkwGross"],["LKW Klein","lkwKlein"],["PKW","pkw"],["Admin","isAdmin"]].map(([l,k])=>(
@@ -348,7 +403,7 @@ function Admin({data,updateData,setView}){
 
       {tab==="employees"&&(
         <div>
-          <button onClick={()=>setNewEmp({name:"",firstName:"",role:"Monteur",email:"",lkwGross:false,lkwKlein:false,pkw:false,password:"",isAdmin:false})}
+          <button onClick={()=>setNewEmp({name:"",firstName:"",role:"Monteur",email:"",lkwGross:false,lkwKlein:false,pkw:false,password:"",isAdmin:false,urlaubstage:30})}
             style={{width:"100%",...S.card,border:`1px dashed ${C.redBorder}`,padding:"10px",cursor:"pointer",color:C.red,fontWeight:600,fontSize:13,marginBottom:12,textAlign:"center",boxShadow:"none"}}>
             + Neuen Mitarbeiter hinzufügen
           </button>
@@ -363,7 +418,7 @@ function Admin({data,updateData,setView}){
                       {emp.name}
                       {emp.isAdmin&&<span style={{fontSize:9,background:C.redLight,color:C.red,padding:"1px 5px",borderRadius:10,border:`1px solid ${C.redBorder}`}}>Admin</span>}
                     </div>
-                    <div style={{fontSize:10,color:C.textLight}}>{emp.role} · {emp.email}</div>
+                    <div style={{fontSize:10,color:C.textLight}}>{emp.role} · {emp.urlaubstage||30} Urlaubstage</div>
                   </div>
                   <div style={{display:"flex",gap:4}}>
                     <button onClick={()=>setEditEmp({...emp})} style={{...S.btnGhost,padding:"4px 8px",fontSize:11}}>✏</button>
@@ -389,6 +444,22 @@ function Admin({data,updateData,setView}){
                   <button onClick={()=>setRules(p=>({...p,[k]:(p[k]||1)+1}))} style={{width:30,height:30,background:C.bg,border:`1px solid ${C.border}`,borderRadius:6,color:C.red,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
                 </div>
               </div>
+            ))}
+          </div>
+          <div style={{...S.card,marginBottom:12}}>
+            <div style={{fontSize:13,fontWeight:700,marginBottom:14,color:C.text}}>Dezember-Sperre</div>
+            <div style={{fontSize:12,color:C.textLight,marginBottom:10}}>Für welche Rollen gilt die Dezember-Sperre?</div>
+            {ROLES.map(role=>(
+              <label key={role} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,cursor:"pointer"}}>
+                <input type="checkbox"
+                  checked={(rules.blockedRoles||[]).includes(role)}
+                  onChange={e=>{
+                    const br=rules.blockedRoles||[];
+                    setRules(p=>({...p,blockedRoles:e.target.checked?[...br,role]:br.filter(r=>r!==role)}));
+                  }}
+                  style={{accentColor:C.red}}/>
+                <span style={{fontSize:12,color:C.textMid}}>{role}</span>
+              </label>
             ))}
           </div>
           <div style={{...S.card,marginBottom:12}}>
@@ -473,18 +544,24 @@ export default function App(){
   function submitUrlaub(){
     if(!vFrom||!vTo||conflict) return;
     const recNames=(data.vacationRecipientIds||[]).map(id=>data.employees.find(e=>e.id===id)?.name).filter(Boolean).join(", ");
-    sendEmail(user.name, user.role, "Urlaubsantrag", recNames, `Zeitraum: ${vFrom} – ${vTo}`, `Urlaubsantrag von ${user.name}`);
-    handleSuccess(`Dein Urlaubsantrag (${vFrom} – ${vTo}) wurde an ${recNames} weitergeleitet.`,{id:Date.now(),employeeId:user.id,type:"urlaub",label:"Urlaubsantrag",text:`${vFrom} – ${vTo}`,to:recNames,date:new Date().toLocaleDateString("de-DE")});
+    const requestedDays = countWorkdays(vFrom, vTo);
+    sendEmail(user.name, user.role, "Urlaubsantrag", recNames, `Zeitraum: ${vFrom} – ${vTo} (${requestedDays} Arbeitstage)`, `Urlaubsantrag von ${user.name}`);
+    // Urlaub als gebucht speichern
+    const newVac = {id:`v${Date.now()}`,employeeId:user.id,name:user.name,role:user.role,lkwGross:user.lkwGross,lkwKlein:user.lkwKlein,from:vFrom,to:vTo};
+    const newData = {...data, bookedVacations:[...(data.bookedVacations||[]),newVac]};
+    updateData(newData);
+    handleSuccess(`Dein Urlaubsantrag (${vFrom} – ${vTo}, ${requestedDays} Arbeitstage) wurde an ${recNames} weitergeleitet.`,{id:Date.now(),employeeId:user.id,type:"urlaub",label:"Urlaubsantrag",text:`${vFrom} – ${vTo}`,to:recNames,date:new Date().toLocaleDateString("de-DE")});
     setVFrom("");setVTo("");
   }
 
   const allVacs=getAllVacs(data);
-  const upcoming=allVacs.filter(v=>v.to>=new Date().toISOString().split("T")[0]).slice(0,5);
+  const today=new Date().toISOString().split("T")[0];
+  const upcoming=allVacs.filter(v=>v.to>=today).slice(0,5);
   const myItems=(data.sentItems||[]).filter(s=>s.employeeId===user.id).slice(-3).reverse();
+  const requestedDays = vFrom&&vTo&&vFrom<=vTo ? countWorkdays(vFrom,vTo) : 0;
 
   return (
     <div style={S.page}>
-      {/* HEADER */}
       <div style={{background:C.white,borderBottom:`1px solid ${C.border}`,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
         <div style={{padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <Logo size={0.7}/>
@@ -504,7 +581,6 @@ export default function App(){
 
       <div style={{flex:1,padding:16,maxWidth:520,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
 
-        {/* DASHBOARD */}
         {view==="dashboard"&&(
           <div>
             <div style={{fontSize:19,fontWeight:800,marginBottom:2,color:C.text}}>Was möchtest du melden?</div>
@@ -541,7 +617,6 @@ export default function App(){
           </div>
         )}
 
-        {/* MELDUNG */}
         {view==="meldung"&&(
           <div>
             <button onClick={()=>setView("dashboard")} style={S.back}>‹ Zurück</button>
@@ -586,12 +661,14 @@ export default function App(){
           </div>
         )}
 
-        {/* URLAUB */}
         {view==="urlaub"&&(
           <div>
             <button onClick={()=>setView("dashboard")} style={S.back}>‹ Zurück</button>
             <div style={{fontSize:19,fontWeight:800,marginBottom:2,color:C.text}}>Urlaub beantragen</div>
             <div style={{fontSize:12,color:C.textLight,marginBottom:16}}>Zeitraum wählen & Verfügbarkeit prüfen</div>
+
+            <VacationDaysBar emp={user} data={data}/>
+
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
               {[["VON",vFrom,setVFrom],["BIS",vTo,setVTo]].map(([l,val,setter])=>(
                 <div key={l}><label style={S.label}>{l}</label>
@@ -599,6 +676,13 @@ export default function App(){
                 </div>
               ))}
             </div>
+
+            {requestedDays > 0 && (
+              <div style={{...S.card,marginBottom:14,padding:"10px 14px",background:"#f8faff",border:`1px solid #dbeafe`}}>
+                <div style={{fontSize:12,color:"#1d4ed8",fontWeight:600}}>📅 {requestedDays} Arbeitstage beantragt</div>
+              </div>
+            )}
+
             {vFrom&&vTo&&vFrom<=vTo&&(
               <div style={{background:conflict?C.redLight:C.greenLight,border:`1px solid ${conflict?C.redBorder:C.greenBorder}`,borderRadius:10,padding:"12px 14px",marginBottom:14,display:"flex",alignItems:"flex-start",gap:10}}>
                 <span style={{fontSize:20,flexShrink:0}}>{conflict?"🚫":"✅"}</span>
@@ -608,9 +692,11 @@ export default function App(){
                 </div>
               </div>
             )}
+
             <Calendar year={calYear} month={calMonth}
               onChangeMonth={delta=>{let m=calMonth+delta,y=calYear;if(m<0){m=11;y--;}if(m>11){m=0;y++;}setCalMonth(m);setCalYear(y);}}
               vacFrom={vFrom} vacTo={vTo} conflict={!!conflict} user={user} data={data}/>
+
             {upcoming.length>0&&<div style={{marginTop:14,marginBottom:14}}>
               <div style={{fontSize:11,fontWeight:700,color:C.textLight,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.5px"}}>Aktuelle Urlaubsbuchungen</div>
               {upcoming.map((v,i)=>(
@@ -623,6 +709,7 @@ export default function App(){
                 </div>
               ))}
             </div>}
+
             <button onClick={submitUrlaub} disabled={!vFrom||!vTo||vFrom>vTo||!!conflict}
               style={{...S.btn,background:(!vFrom||!vTo||vFrom>vTo||!!conflict)?"#e5e7eb":`linear-gradient(135deg,${C.red},#b91c1c)`,color:(!vFrom||!vTo||vFrom>vTo||!!conflict)?C.textLight:"#fff"}}>
               Urlaubsantrag senden ›
@@ -630,10 +717,8 @@ export default function App(){
           </div>
         )}
 
-        {/* ADMIN */}
         {view==="admin"&&user.isAdmin&&<Admin data={data} updateData={updateData} setView={setView}/>}
 
-        {/* SUCCESS */}
         {view==="success"&&(
           <div style={{textAlign:"center",paddingTop:50}}>
             <div style={{fontSize:60,marginBottom:16}}>✅</div>
