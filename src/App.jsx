@@ -20,23 +20,29 @@ async function supabase(method, table, data = null, filter = "") {
 }
 
 // ─── EMAILJS ──────────────────────────────────────────────────────────────────
-const EMAILJS_PUBLIC = "LNWETx8iRbXRi2zvl";
-const EMAILJS_SERVICE = "service_gxg015l";
-const EMAILJS_TEMPLATE = "template_av4scen";
-
 async function sendEmail(vonName, vonRolle, meldungArt, anName, nachricht, betreff) {
   try {
-    await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+    const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        service_id: EMAILJS_SERVICE,
-        template_id: EMAILJS_TEMPLATE,
-        user_id: EMAILJS_PUBLIC,
-        template_params: { betreff, von_name: vonName, von_rolle: vonRolle, meldung_art: meldungArt, an_name: anName, nachricht }
+        service_id: "service_gxg015l",
+        template_id: "template_av4scen",
+        user_id: "LNWETx8iRbXRi2zvl",
+        template_params: {
+          betreff: betreff,
+          von_name: vonName,
+          von_rolle: vonRolle,
+          meldung_art: meldungArt,
+          an_name: anName,
+          nachricht: nachricht,
+        }
       })
     });
-  } catch(e) { console.error("Email error:", e); }
+    console.log("Email status:", response.status);
+  } catch(e) {
+    console.error("Email error:", e);
+  }
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
