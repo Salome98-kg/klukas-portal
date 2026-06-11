@@ -20,31 +20,28 @@ async function supabase(method, table, data = null, filter = "") {
 }
 
 // ─── EMAILJS ──────────────────────────────────────────────────────────────────
-const EMAILJS_PUBLIC = "LNWETx8iRbXRi2zvl";
-const EMAILJS_SERVICE = "service_gxg015l";
-const EMAILJS_TEMPLATE = "template_av4scen";
-
-async function sendEmail(vonName, vonRolle, meldungArt, anName, nachricht, betreff, toEmail="") {
+async function sendEmail(vonName, vonRolle, meldungArt, anName, nachricht, betreff, toEmail="", genehmigungLink="") {
   try {
-    await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+    const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        service_id: EMAILJS_SERVICE,
-        template_id: EMAILJS_TEMPLATE,
-        user_id: EMAILJS_PUBLIC,
+        service_id: "service_gxg015l",
+        template_id: "template_av4scen",
+        user_id: "LNWETx8iRbXRi2zvl",
         template_params: {
-  betreff,
-  von_name: vonName,
-  von_rolle: vonRolle,
-  meldung_art: meldungArt,
-  an_name: anName,
-  nachricht,
-  to_email: toEmail,
-  genehmigung_link: (toEmail === "torsten.may@klukas-gerueste.de" && toEmail !== "kein_link") ? nachricht.split("Genehmigungslink:\n")[1] || "" : "",
-}
+          betreff,
+          von_name: vonName,
+          von_rolle: vonRolle,
+          meldung_art: meldungArt,
+          an_name: anName,
+          nachricht,
+          to_email: toEmail,
+          genehmigung_link: genehmigungLink,
+        }
       })
     });
+    console.log("Email status:", response.status);
   } catch(e) { console.error("Email error:", e); }
 }
 
@@ -62,9 +59,16 @@ function countWorkdays(from, to) {
   while(d<=end){const day=d.getDay();if(day!==0&&day!==6)count++;d.setDate(d.getDate()+1);}
   return count;
 }
+function formatDate(ds) {
+  if(!ds) return "";
+  const [y,m,d] = ds.split("-");
+  return `${d}.${m}.${y}`;
+}
 
-// Rollen die Genehmigung brauchen
-const APPROVAL_ROLES = ["Monteur","Vorarbeiter","Lagerist","Azubi"];
+// Rollen die Genehmigung durch Torsten May brauchen
+const APPROVAL_ROLES_TORSTEN = ["Monteur","Vorarbeiter","Lagerist","Azubi"];
+// Rollen die Genehmigung durch Ralf Klukas brauchen
+const APPROVAL_ROLES_RALF = ["GF","Büro","Bauleiter"];
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 const DEFAULT_EMPLOYEES = [
@@ -109,8 +113,7 @@ const DEFAULT_MELDUNGEN = [
   {key:"gespraech",   icon:"💬",label:"Gespräch",      desc:"Gesprächswunsch",              recipientIds:[1,2,3,4,5],multiSelect:true,coordinatorId:8},
   {key:"krank",       icon:"🤒",label:"Krankmeldung",  desc:"Krankheit melden",             recipientIds:[4,3,6],multiSelect:false},
 ];
-const DEFAULT_VAC_RECIPIENTS = [3,4,6];
-const STORAGE_KEY = "klukas_v6";
+const STORAGE_KEY = "klukas_v7";
 const ROLES = ["GF","Bauleiter","Büro","Lagerist","Vorarbeiter","Monteur","Azubi"];
 
 function loadData() {
@@ -124,12 +127,11 @@ function loadData() {
         fixedVacations: p.fixedVacations||DEFAULT_FIXED,
         bookedVacations: p.bookedVacations||DEFAULT_BOOKED,
         meldungTypes: p.meldungTypes||DEFAULT_MELDUNGEN,
-        vacationRecipientIds: p.vacationRecipientIds||DEFAULT_VAC_RECIPIENTS,
         sentItems: p.sentItems||[]
       };
     }
   } catch(e){}
-  return {employees:DEFAULT_EMPLOYEES,rules:DEFAULT_RULES,fixedVacations:DEFAULT_FIXED,bookedVacations:DEFAULT_BOOKED,meldungTypes:DEFAULT_MELDUNGEN,vacationRecipientIds:DEFAULT_VAC_RECIPIENTS,sentItems:[]};
+  return {employees:DEFAULT_EMPLOYEES,rules:DEFAULT_RULES,fixedVacations:DEFAULT_FIXED,bookedVacations:DEFAULT_BOOKED,meldungTypes:DEFAULT_MELDUNGEN,sentItems:[]};
 }
 function saveData(d){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(d));}catch(e){}}
 
@@ -138,7 +140,7 @@ function getAllVacs(data){
   for(const fv of (data.fixedVacations||[])){
     for(const eid of fv.employeeIds){
       const e=data.employees.find(x=>x.id===eid);
-      if(e) all.push({employeeId:eid,name:e.name,role:e.role,lkwGross:e.lkwGross,lkwKlein:e.lkwKlein,from:fv.from,to:fv.to,fixed:true,label:fv.label});
+      if(e) all.push({employeeId:eid,name:e.name,role:e.role,lkwGross:e.lkwGross,lkwKlein:e.lkwKlein,from:fv.from,to:fv.to,fixed:true});
     }
   }
   return all;
@@ -176,7 +178,7 @@ function checkConflict(from,to,emp,data){
   return null;
 }
 
-// ─── FARBEN ───────────────────────────────────────────────────────────────────
+// ─── FARBEN & STYLES ──────────────────────────────────────────────────────────
 const C = {
   bg:"#f3f4f6", white:"#ffffff", border:"#e5e7eb", borderDark:"#d1d5db",
   text:"#111827", textMid:"#374151", textLight:"#6b7280",
@@ -184,7 +186,6 @@ const C = {
   green:"#16a34a", greenLight:"#f0fdf4", greenBorder:"#86efac",
   amber:"#d97706", amberLight:"#fffbeb",
 };
-
 const S = {
   page:{minHeight:"100vh",background:C.bg,fontFamily:"'DM Sans','Segoe UI',sans-serif",color:C.text,display:"flex",flexDirection:"column"},
   card:{background:C.white,border:`1px solid ${C.border}`,borderRadius:12,padding:16,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"},
@@ -239,14 +240,14 @@ function VacationDaysBar({emp,data}){
 
 // ─── GENEHMIGUNG SEITE ────────────────────────────────────────────────────────
 function ApprovalPage({antragId, employees}){
-  const [antrag, setAntrag] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [done, setDone] = useState(null);
-  const [processing, setProcessing] = useState(false);
+  const [antrag,setAntrag]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [done,setDone]=useState(null);
+  const [processing,setProcessing]=useState(false);
 
   useEffect(()=>{
     async function load(){
-      const result = await supabase("GET", `urlaubsantraege?id=eq.${antragId}&select=*`);
+      const result=await supabase("GET",`urlaubsantraege?id=eq.${antragId}&select=*`);
       if(result&&result.length>0) setAntrag(result[0]);
       setLoading(false);
     }
@@ -255,44 +256,35 @@ function ApprovalPage({antragId, employees}){
 
   async function decide(approved){
     setProcessing(true);
-    const status = approved ? "genehmigt" : "abgelehnt";
-    await supabase("PATCH", `urlaubsantraege?id=eq.${antragId}`, {
-      status,
-      entschieden_am: new Date().toISOString()
-    });
+    const status=approved?"genehmigt":"abgelehnt";
+    await supabase("PATCH",`urlaubsantraege?id=eq.${antragId}`,{status,entschieden_am:new Date().toISOString()});
+    const emp=employees.find(e=>e.id===antrag.mitarbeiter_id);
+    const empEmail=emp?.email||"";
 
-    const emp = employees.find(e=>e.id===antrag.mitarbeiter_id);
     if(approved){
       // Info an Mitarbeiter
-      const empEmail = employees.find(e=>e.id===antrag.mitarbeiter_id)?.email||"";
-      await sendEmail("Torsten May","Bauleiter","Urlaubsgenehmigung",antrag.mitarbeiter_name,
-        `Dein Urlaubsantrag vom ${antrag.von} bis ${antrag.bis} (${antrag.arbeitstage} Arbeitstage) wurde GENEHMIGT.`,
-        `✅ Urlaub genehmigt: ${antrag.mitarbeiter_name}`, empEmail);
-      // Info an Elke & Falk
-      await sendEmail("Torsten May","Bauleiter","Urlaubsgenehmigung","Elke Anders, Falk Kademann",
-  `Urlaubsantrag von ${antrag.mitarbeiter_name} (${antrag.mitarbeiter_rolle}) vom ${antrag.von} bis ${antrag.bis} wurde genehmigt.`,
-  `Urlaub genehmigt: ${antrag.mitarbeiter_name}`, "elke.anders@klukas-gerueste.de,falk.kademann@klukas-gerueste.de", "kein_link");
+      await sendEmail("Ralf Klukas / Torsten May","","Urlaubsgenehmigung",antrag.mitarbeiter_name,
+        `Dein Urlaubsantrag vom ${formatDate(antrag.von)} bis ${formatDate(antrag.bis)} (${antrag.arbeitstage} Arbeitstage) wurde GENEHMIGT.`,
+        `✅ Urlaub genehmigt: ${antrag.mitarbeiter_name}`, empEmail, "");
+      // Info an Elke (ohne Button)
+      await sendEmail("Ralf Klukas / Torsten May","","Urlaubsinfo","Elke Anders",
+        `Zur Info: Urlaubsantrag von ${antrag.mitarbeiter_name} (${antrag.mitarbeiter_rolle}) vom ${formatDate(antrag.von)} bis ${formatDate(antrag.bis)} wurde genehmigt.`,
+        `ℹ️ Urlaub genehmigt: ${antrag.mitarbeiter_name}`, "elke.anders@klukas-gerueste.de", "");
     } else {
       // Info an Mitarbeiter
-      const empEmailRej = employees.find(e=>e.id===antrag.mitarbeiter_id)?.email||"";
-      await sendEmail("Torsten May","Bauleiter","Urlaubsablehnung",antrag.mitarbeiter_name,
-        `Dein Urlaubsantrag vom ${antrag.von} bis ${antrag.bis} wurde ABGELEHNT. Bitte wende dich an deinen Bauleiter.`,
-        `❌ Urlaub abgelehnt: ${antrag.mitarbeiter_name}`, empEmailRej);
+      await sendEmail("Ralf Klukas / Torsten May","","Urlaubsablehnung",antrag.mitarbeiter_name,
+        `Dein Urlaubsantrag vom ${formatDate(antrag.von)} bis ${formatDate(antrag.bis)} wurde ABGELEHNT. Bitte wende dich an deinen Vorgesetzten.`,
+        `❌ Urlaub abgelehnt: ${antrag.mitarbeiter_name}`, empEmail, "");
     }
     setDone(approved);
     setProcessing(false);
   }
 
-  if(loading) return (
-    <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif"}}>
-      <div style={{fontSize:14,color:C.textLight}}>Lädt...</div>
-    </div>
-  );
+  if(loading) return <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif"}}><div style={{fontSize:14,color:C.textLight}}>Lädt...</div></div>;
 
   if(!antrag) return (
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",padding:24}}>
-      <Logo size={1.2}/>
-      <div style={{marginTop:32,fontSize:16,color:C.red,fontWeight:700}}>Antrag nicht gefunden</div>
+      <Logo scale={1.2}/><div style={{marginTop:32,fontSize:16,color:C.red,fontWeight:700}}>Antrag nicht gefunden</div>
     </div>
   );
 
@@ -311,13 +303,8 @@ function ApprovalPage({antragId, employees}){
       <Logo size={1.2}/>
       <div style={{marginTop:32,textAlign:"center"}}>
         <div style={{fontSize:50,marginBottom:12}}>{done?"✅":"❌"}</div>
-        <div style={{fontSize:18,fontWeight:800,color:C.text,marginBottom:8}}>
-          {done?"Urlaub genehmigt!":"Urlaub abgelehnt"}
-        </div>
-        <div style={{fontSize:13,color:C.textMid}}>
-          {antrag.mitarbeiter_name} wurde informiert.
-          {done&&" Elke Anders & Falk Kademann wurden ebenfalls informiert."}
-        </div>
+        <div style={{fontSize:18,fontWeight:800,color:C.text,marginBottom:8}}>{done?"Urlaub genehmigt!":"Urlaub abgelehnt"}</div>
+        <div style={{fontSize:13,color:C.textMid}}>{antrag.mitarbeiter_name} wurde informiert.{done&&" Elke Anders wurde ebenfalls informiert."}</div>
       </div>
     </div>
   );
@@ -338,11 +325,7 @@ function ApprovalPage({antragId, employees}){
               <div style={{fontSize:11,color:roleColor(antrag.mitarbeiter_rolle)}}>{antrag.mitarbeiter_rolle}</div>
             </div>
           </div>
-          {[
-            ["📅 Zeitraum", `${antrag.von} – ${antrag.bis}`],
-            ["⏱ Arbeitstage", `${antrag.arbeitstage} Tage`],
-            ["📝 Status", "Ausstehend"],
-          ].map(([l,v])=>(
+          {[["📅 Zeitraum",`${formatDate(antrag.von)} – ${formatDate(antrag.bis)}`],["⏱ Arbeitstage",`${antrag.arbeitstage} Tage`],["📝 Status","Ausstehend"]].map(([l,v])=>(
             <div key={l} style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
               <div style={{fontSize:12,color:C.textLight}}>{l}</div>
               <div style={{fontSize:12,fontWeight:600,color:C.text}}>{v}</div>
@@ -351,7 +334,7 @@ function ApprovalPage({antragId, employees}){
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <button onClick={()=>decide(false)} disabled={processing}
-            style={{background:processing?"#e5e7eb":"#fff",border:`2px solid ${C.red}`,borderRadius:10,padding:"14px",color:C.red,fontWeight:700,fontSize:14,cursor:processing?"not-allowed":"pointer"}}>
+            style={{background:processing?"#e5e7eb":C.white,border:`2px solid ${C.red}`,borderRadius:10,padding:"14px",color:C.red,fontWeight:700,fontSize:14,cursor:processing?"not-allowed":"pointer"}}>
             ❌ Ablehnen
           </button>
           <button onClick={()=>decide(true)} disabled={processing}
@@ -388,10 +371,7 @@ function Login({employees,onLogin}){
                   onMouseOver={e=>e.currentTarget.style.borderColor=C.red}
                   onMouseOut={e=>e.currentTarget.style.borderColor=C.border}>
                   <Avatar emp={emp} size={34}/>
-                  <div>
-                    <div style={{fontSize:13,fontWeight:600,color:C.text}}>{emp.name}</div>
-                    <div style={{fontSize:11,color:roleColor(emp.role)}}>{emp.role}</div>
-                  </div>
+                  <div><div style={{fontSize:13,fontWeight:600,color:C.text}}>{emp.name}</div><div style={{fontSize:11,color:roleColor(emp.role)}}>{emp.role}</div></div>
                 </button>
               ))}
             </div>}
@@ -402,18 +382,13 @@ function Login({employees,onLogin}){
             <button onClick={()=>setSel(null)} style={S.back}>‹ Zurück</button>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18,background:C.bg,borderRadius:10,padding:"10px 12px",border:`1px solid ${C.border}`}}>
               <Avatar emp={sel} size={38}/>
-              <div>
-                <div style={{fontSize:13,fontWeight:700,color:C.text}}>{sel.name}</div>
-                <div style={{fontSize:11,color:roleColor(sel.role)}}>{sel.role}</div>
-              </div>
+              <div><div style={{fontSize:13,fontWeight:700,color:C.text}}>{sel.name}</div><div style={{fontSize:11,color:roleColor(sel.role)}}>{sel.role}</div></div>
             </div>
             <label style={S.label}>Passwort</label>
             <input type="password" value={pw} onChange={e=>{setPw(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&doLogin()} placeholder="••••••••" autoFocus
               style={{...S.input,border:`1px solid ${err?C.red:C.borderDark}`,letterSpacing:"2px"}}/>
             {err&&<div style={{fontSize:11,color:C.red,marginTop:6}}>{err}</div>}
-            <button onClick={doLogin} style={{...S.btn,marginTop:12,background:pw?`linear-gradient(135deg,${C.red},#b91c1c)`:"#e5e7eb",color:pw?"#fff":C.textLight,cursor:pw?"pointer":"not-allowed"}}>
-              Anmelden ›
-            </button>
+            <button onClick={doLogin} style={{...S.btn,marginTop:12,background:pw?`linear-gradient(135deg,${C.red},#b91c1c)`:"#e5e7eb",color:pw?"#fff":C.textLight,cursor:pw?"pointer":"not-allowed"}}>Anmelden ›</button>
           </>
         )}
       </div>
@@ -433,8 +408,7 @@ function Calendar({year,month,onChangeMonth,vacFrom,vacTo,conflict,user,data}){
     const sel=vacFrom&&vacTo&&vacFrom<=ds&&ds<=vacTo;
     const busy=allVacs.some(v=>v.employeeId!==user.id&&dateInRange(ds,v.from,v.to));
     const rules=data.rules;
-    const d=new Date(ds);
-    const blk=(rules.blockedMonths||[]).includes(d.getMonth())&&(rules.blockedRoles||[]).includes(user.role);
+    const blk=(rules.blockedMonths||[]).includes(new Date(ds).getMonth())&&(rules.blockedRoles||[]).includes(user.role);
     const sb=rules.summerBlock; const sum=sb&&ds>=sb.start&&ds<=sb.end;
     if(sel&&conflict) return {bg:C.redLight,bd:`1.5px solid ${C.red}`,c:C.red};
     if(sel) return {bg:C.greenLight,bd:"1.5px solid #16a34a",c:"#16a34a"};
@@ -514,9 +488,7 @@ function Admin({data,updateData,setView}){
   const [antraege,setAntraege]=useState([]);
 
   useEffect(()=>{
-    if(tab==="antraege"){
-      supabase("GET","urlaubsantraege?order=erstellt_am.desc&select=*").then(r=>setAntraege(r||[]));
-    }
+    if(tab==="antraege") supabase("GET","urlaubsantraege?order=erstellt_am.desc&select=*").then(r=>setAntraege(r||[]));
   },[tab]);
 
   function saveEmp(emp){
@@ -535,9 +507,7 @@ function Admin({data,updateData,setView}){
       <div style={{fontSize:12,color:C.textLight,marginBottom:16}}>Nur für Administratoren</div>
       <div style={{display:"flex",gap:6,marginBottom:18,flexWrap:"wrap"}}>
         {[["employees","Mitarbeiter"],["rules","Regeln"],["sent","Meldungen"],["antraege","Urlaubsanträge"]].map(([k,l])=>(
-          <button key={k} onClick={()=>setTab(k)} style={{background:tab===k?C.redLight:C.white,border:tab===k?`1.5px solid ${C.red}`:`1px solid ${C.border}`,borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:12,fontWeight:600,color:tab===k?C.red:C.textLight}}>
-            {l}
-          </button>
+          <button key={k} onClick={()=>setTab(k)} style={{background:tab===k?C.redLight:C.white,border:tab===k?`1.5px solid ${C.red}`:`1px solid ${C.border}`,borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:12,fontWeight:600,color:tab===k?C.red:C.textLight}}>{l}</button>
         ))}
       </div>
 
@@ -555,8 +525,7 @@ function Admin({data,updateData,setView}){
                   <Avatar emp={emp} size={32}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:12,fontWeight:600,color:C.text,display:"flex",alignItems:"center",gap:6}}>
-                      {emp.name}
-                      {emp.isAdmin&&<span style={{fontSize:9,background:C.redLight,color:C.red,padding:"1px 5px",borderRadius:10,border:`1px solid ${C.redBorder}`}}>Admin</span>}
+                      {emp.name}{emp.isAdmin&&<span style={{fontSize:9,background:C.redLight,color:C.red,padding:"1px 5px",borderRadius:10,border:`1px solid ${C.redBorder}`}}>Admin</span>}
                     </div>
                     <div style={{fontSize:10,color:C.textLight}}>{emp.role} · {emp.urlaubstage||30} Urlaubstage</div>
                   </div>
@@ -636,19 +605,19 @@ function Admin({data,updateData,setView}){
 
       {tab==="antraege"&&(
         <div>
-          <div style={{fontSize:12,color:C.textLight,marginBottom:12}}>Alle Urlaubsanträge aus Supabase</div>
-          {antraege.length===0&&<div style={{textAlign:"center",color:C.textLight,fontSize:13,padding:24}}>Noch keine Anträge vorhanden</div>}
+          <div style={{fontSize:12,color:C.textLight,marginBottom:12}}>Alle Urlaubsanträge</div>
+          {antraege.length===0&&<div style={{textAlign:"center",color:C.textLight,fontSize:13,padding:24}}>Noch keine Anträge</div>}
           {antraege.map((a,i)=>{
-            const statusColor = a.status==="genehmigt"?C.green:a.status==="abgelehnt"?C.red:C.amber;
-            const statusBg = a.status==="genehmigt"?C.greenLight:a.status==="abgelehnt"?C.redLight:C.amberLight;
+            const statusColor=a.status==="genehmigt"?C.green:a.status==="abgelehnt"?C.red:C.amber;
+            const statusBg=a.status==="genehmigt"?C.greenLight:a.status==="abgelehnt"?C.redLight:C.amberLight;
             return (
               <div key={i} style={{...S.card,borderRadius:10,padding:12,marginBottom:8}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
                   <div style={{fontSize:12,fontWeight:700,color:C.text}}>{a.mitarbeiter_name}</div>
-                  <span style={{fontSize:10,background:statusBg,color:statusColor,padding:"2px 8px",borderRadius:20,fontWeight:600,border:`1px solid ${statusColor}33`}}>{a.status}</span>
+                  <span style={{fontSize:10,background:statusBg,color:statusColor,padding:"2px 8px",borderRadius:20,fontWeight:600}}>{a.status}</span>
                 </div>
                 <div style={{fontSize:11,color:C.textLight,marginBottom:2}}>{a.mitarbeiter_rolle}</div>
-                <div style={{fontSize:11,color:C.textMid}}>{a.von} – {a.bis} · {a.arbeitstage} Arbeitstage</div>
+                <div style={{fontSize:11,color:C.textMid}}>{formatDate(a.von)} – {formatDate(a.bis)} · {a.arbeitstage} Arbeitstage</div>
               </div>
             );
           })}
@@ -664,18 +633,24 @@ export default function App(){
   const [user,setUser]=useState(null);
   const [view,setView]=useState("dashboard");
   const [successMsg,setSuccessMsg]=useState("");
+
+  // Meldung state
   const [mKey,setMKey]=useState(null);
   const [mText,setMText]=useState("");
   const [mRecip,setMRecip]=useState(null);
+  const [krankVon,setKrankVon]=useState("");
+  const [krankBis,setKrankBis]=useState("");
+
+  // Urlaub state
   const [vFrom,setVFrom]=useState("");
   const [vTo,setVTo]=useState("");
   const [conflict,setConflict]=useState(null);
   const [calYear,setCalYear]=useState(new Date().getFullYear());
   const [calMonth,setCalMonth]=useState(new Date().getMonth());
 
-  // Genehmigungsseite prüfen
-  const urlParams = new URLSearchParams(window.location.search);
-  const antragId = urlParams.get("antrag");
+  // Genehmigungsseite
+  const urlParams=new URLSearchParams(window.location.search);
+  const antragId=urlParams.get("antrag");
   if(antragId) return <ApprovalPage antragId={antragId} employees={data.employees}/>;
 
   useEffect(()=>{
@@ -691,63 +666,68 @@ export default function App(){
 
   const mt=data.meldungTypes?.find(m=>m.key===mKey);
   function getRecips(m){return (m?.recipientIds||[]).map(id=>data.employees.find(e=>e.id===id)).filter(Boolean);}
-  function canSend(){if(!mt||!mText.trim()) return false;if(mt.multiSelect&&!mRecip) return false;return true;}
+
+  function canSend(){
+    if(!mt) return false;
+    if(mt.key==="krank") return !!(krankVon&&krankBis&&krankVon<=krankBis);
+    if(!mText.trim()) return false;
+    if(mt.multiSelect&&!mRecip) return false;
+    return true;
+  }
 
   function submitMeldung(){
     if(!canSend()) return;
-    const recipEmps = mt.multiSelect ? [data.employees.find(e=>e.id===mRecip)].filter(Boolean) : getRecips(mt);
-    const toStr = recipEmps.map(r=>r.name).join(", ");
-    const toEmail = recipEmps.map(r=>r.email).join(", ");
-    sendEmail(user.name, user.role, mt.label, toStr, mText, `${mt.label} von ${user.name}`, toEmail);
-    handleSuccess(`Deine Meldung wurde weitergeleitet an: ${toStr}.`,{id:Date.now(),employeeId:user.id,type:"meldung",label:mt.label,text:mText,to:toStr,date:new Date().toLocaleDateString("de-DE")});
-    setMKey(null);setMText("");setMRecip(null);
+    const recipEmps=mt.multiSelect?[data.employees.find(e=>e.id===mRecip)].filter(Boolean):getRecips(mt);
+    const toStr=recipEmps.map(r=>r.name).join(", ");
+    const toEmail=recipEmps.map(r=>r.email).join(", ");
+
+    let nachricht=mText;
+    let label=mt.label;
+
+    if(mt.key==="krank"){
+      nachricht=`Krankheitszeitraum: ${formatDate(krankVon)} – ${formatDate(krankBis)}${mText?"\n\nHinweis: "+mText:""}`;
+      label=`Krankmeldung (${formatDate(krankVon)} – ${formatDate(krankBis)})`;
+    }
+
+    sendEmail(user.name,user.role,mt.label,toStr,nachricht,`${label} von ${user.name}`,toEmail,"");
+    handleSuccess(`Deine Meldung wurde weitergeleitet an: ${toStr}.`,{id:Date.now(),employeeId:user.id,type:"meldung",label,text:nachricht,to:toStr,date:new Date().toLocaleDateString("de-DE")});
+    setMKey(null);setMText("");setMRecip(null);setKrankVon("");setKrankBis("");
   }
 
   async function submitUrlaub(){
     if(!vFrom||!vTo||conflict) return;
     const requestedDays=countWorkdays(vFrom,vTo);
-    const needsApproval=APPROVAL_ROLES.includes(user.role);
+    const needsApprovalTorsten=APPROVAL_ROLES_TORSTEN.includes(user.role);
+    const needsApprovalRalf=APPROVAL_ROLES_RALF.includes(user.role);
 
-    if(needsApproval){
-      // Antrag in Supabase speichern
-      const result = await supabase("POST","urlaubsantraege",{
-        mitarbeiter_id: user.id,
-        mitarbeiter_name: user.name,
-        mitarbeiter_rolle: user.role,
-        von: vFrom,
-        bis: vTo,
-        arbeitstage: requestedDays,
-        status: "ausstehend"
+    if(needsApprovalTorsten||needsApprovalRalf){
+      const approverName=needsApprovalTorsten?"Torsten May":"Ralf Klukas";
+      const approverEmail=needsApprovalTorsten?"torsten.may@klukas-gerueste.de":"ralf.klukas@klukas-gerueste.de";
+
+      const result=await supabase("POST","urlaubsantraege",{
+        mitarbeiter_id:user.id,
+        mitarbeiter_name:user.name,
+        mitarbeiter_rolle:user.role,
+        von:vFrom,
+        bis:vTo,
+        arbeitstage:requestedDays,
+        status:"ausstehend"
       });
 
       if(result&&result.length>0){
-        const antragId = result[0].id;
-        const approvalLink = `https://klukas-portal.vercel.app/?antrag=${antragId}`;
-
-        // E-Mail an Torsten May mit Genehmigungslink
+        const aid=result[0].id;
+        const approvalLink=`https://klukas-portal.vercel.app/?antrag=${aid}`;
         await sendEmail(
-          user.name, user.role, "Urlaubsantrag", "Torsten May",
-          `${user.name} (${user.role}) beantragt Urlaub vom ${vFrom} bis ${vTo} (${requestedDays} Arbeitstage).\n\nGenehmigungslink:\n${approvalLink}`,
+          user.name,user.role,"Urlaubsantrag",approverName,
+          `${user.name} (${user.role}) beantragt Urlaub vom ${formatDate(vFrom)} bis ${formatDate(vTo)} (${requestedDays} Arbeitstage).`,
           `Urlaubsantrag von ${user.name} – Genehmigung erforderlich`,
-          "torsten.may@klukas-gerueste.de"
+          approverEmail, approvalLink
         );
-
         handleSuccess(
-          `Dein Urlaubsantrag (${vFrom} – ${vTo}, ${requestedDays} Arbeitstage) wurde zur Genehmigung an Torsten May weitergeleitet. Du erhältst eine Benachrichtigung sobald er entschieden hat.`,
-          {id:Date.now(),employeeId:user.id,type:"urlaub",label:"Urlaubsantrag (ausstehend)",text:`${vFrom} – ${vTo}`,to:"Torsten May",date:new Date().toLocaleDateString("de-DE")}
+          `Dein Urlaubsantrag (${formatDate(vFrom)} – ${formatDate(vTo)}, ${requestedDays} Arbeitstage) wurde zur Genehmigung an ${approverName} weitergeleitet. Du erhältst eine Benachrichtigung sobald er entschieden hat.`,
+          {id:Date.now(),employeeId:user.id,type:"urlaub",label:"Urlaubsantrag (ausstehend)",text:`${vFrom} – ${vTo}`,to:approverName,date:new Date().toLocaleDateString("de-DE")}
         );
       }
-    } else {
-      // Direkte Buchung ohne Genehmigung – nur an Elke Anders
-      const elke = data.employees.find(e=>e.id===6);
-      const recNames = elke ? elke.name : "Elke Anders";
-      sendEmail(user.name,user.role,"Urlaubsantrag",recNames,`Zeitraum: ${vFrom} – ${vTo} (${requestedDays} Arbeitstage)`,`Urlaubsantrag von ${user.name}`,"elke.anders@klukas-gerueste.de");
-      const newVac={id:`v${Date.now()}`,employeeId:user.id,name:user.name,role:user.role,lkwGross:user.lkwGross,lkwKlein:user.lkwKlein,from:vFrom,to:vTo};
-      updateData({...data,bookedVacations:[...(data.bookedVacations||[]),newVac]});
-      handleSuccess(
-        `Dein Urlaubsantrag (${vFrom} – ${vTo}, ${requestedDays} Arbeitstage) wurde an ${recNames} weitergeleitet.`,
-        {id:Date.now(),employeeId:user.id,type:"urlaub",label:"Urlaubsantrag",text:`${vFrom} – ${vTo}`,to:recNames,date:new Date().toLocaleDateString("de-DE")}
-      );
     }
     setVFrom("");setVTo("");
   }
@@ -757,10 +737,12 @@ export default function App(){
   const upcoming=allVacs.filter(v=>v.to>=today).slice(0,5);
   const myItems=(data.sentItems||[]).filter(s=>s.employeeId===user.id).slice(-3).reverse();
   const requestedDays=vFrom&&vTo&&vFrom<=vTo?countWorkdays(vFrom,vTo):0;
-  const needsApproval=APPROVAL_ROLES.includes(user.role);
+  const needsApproval=APPROVAL_ROLES_TORSTEN.includes(user.role)||APPROVAL_ROLES_RALF.includes(user.role);
+  const approverName=APPROVAL_ROLES_TORSTEN.includes(user.role)?"Torsten May":"Ralf Klukas";
 
   return (
     <div style={S.page}>
+      {/* HEADER */}
       <div style={{background:C.white,borderBottom:`1px solid ${C.border}`,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
         <div style={{padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <Logo size={0.7}/>
@@ -780,6 +762,7 @@ export default function App(){
 
       <div style={{flex:1,padding:16,maxWidth:520,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
 
+        {/* DASHBOARD */}
         {view==="dashboard"&&(
           <div>
             <div style={{fontSize:19,fontWeight:800,marginBottom:2,color:C.text}}>Was möchtest du melden?</div>
@@ -816,6 +799,7 @@ export default function App(){
           </div>
         )}
 
+        {/* MELDUNG */}
         {view==="meldung"&&(
           <div>
             <button onClick={()=>setView("dashboard")} style={S.back}>‹ Zurück</button>
@@ -823,7 +807,7 @@ export default function App(){
             <div style={{fontSize:12,color:C.textLight,marginBottom:18}}>Was möchtest du melden?</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:18}}>
               {(data.meldungTypes||[]).map(t=>(
-                <button key={t.key} onClick={()=>{setMKey(t.key);setMRecip(null);}}
+                <button key={t.key} onClick={()=>{setMKey(t.key);setMRecip(null);setMText("");setKrankVon("");setKrankBis("");}}
                   style={{background:mKey===t.key?C.redLight:C.white,border:mKey===t.key?`1.5px solid ${C.red}`:`1px solid ${C.border}`,borderRadius:12,padding:"16px 8px",cursor:"pointer",textAlign:"center",transition:"all 0.15s",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
                   <div style={{fontSize:24,marginBottom:6}}>{t.icon}</div>
                   <div style={{fontSize:11,fontWeight:700,color:C.text}}>{t.label}</div>
@@ -831,6 +815,7 @@ export default function App(){
                 </button>
               ))}
             </div>
+
             {mt&&(
               <div style={{...S.card,border:`1px solid ${C.redBorder}`,background:"#fff8f8",marginBottom:14,fontSize:11}}>
                 {mt.multiSelect?(
@@ -851,8 +836,34 @@ export default function App(){
                 )}
               </div>
             )}
-            <textarea value={mText} onChange={e=>setMText(e.target.value)} placeholder="Beschreibe dein Anliegen..." rows={4}
+
+            {/* Krankmeldung: Datumsauswahl */}
+            {mt?.key==="krank"&&(
+              <div style={{marginBottom:14}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                  {[["KRANK AB",krankVon,setKrankVon],["KRANK BIS",krankBis,setKrankBis]].map(([l,val,setter])=>(
+                    <div key={l}><label style={S.label}>{l}</label>
+                      <input type="date" value={val} onChange={e=>setter(e.target.value)} style={{...S.input,fontSize:12,padding:"9px 10px"}}/>
+                    </div>
+                  ))}
+                </div>
+                {krankVon&&krankBis&&krankVon<=krankBis&&(
+                  <div style={{...S.card,background:"#fff8f8",border:`1px solid ${C.redBorder}`,padding:"10px 14px",fontSize:12,color:C.textMid,marginBottom:10}}>
+                    🤒 Krankmeldung: <strong>{formatDate(krankVon)} – {formatDate(krankBis)}</strong>
+                  </div>
+                )}
+                <label style={S.label}>Optionaler Hinweis</label>
+              </div>
+            )}
+
+            {mt?.key!=="krank"&&(
+              <div/>
+            )}
+
+            <textarea value={mText} onChange={e=>setMText(e.target.value)}
+              placeholder={mt?.key==="krank"?"Optionaler Hinweis (z.B. Arztbesuch geplant)...":"Beschreibe dein Anliegen..."} rows={mt?.key==="krank"?2:4}
               style={{...S.input,resize:"none",fontSize:13,padding:"10px 12px"}}/>
+
             <button onClick={submitMeldung} disabled={!canSend()}
               style={{...S.btn,marginTop:10,background:canSend()?`linear-gradient(135deg,${C.red},#b91c1c)`:"#e5e7eb",color:canSend()?"#fff":C.textLight,cursor:canSend()?"pointer":"not-allowed"}}>
               Meldung absenden ›
@@ -860,6 +871,7 @@ export default function App(){
           </div>
         )}
 
+        {/* URLAUB */}
         {view==="urlaub"&&(
           <div>
             <button onClick={()=>setView("dashboard")} style={S.back}>‹ Zurück</button>
@@ -867,8 +879,8 @@ export default function App(){
             <div style={{fontSize:12,color:C.textLight,marginBottom:16}}>Zeitraum wählen & Verfügbarkeit prüfen</div>
 
             {needsApproval&&(
-              <div style={{...S.card,background:C.amberLight,border:`1px solid #fcd34d`,marginBottom:14,padding:"10px 14px",fontSize:12,color:"#92400e"}}>
-                ⏳ Dein Antrag wird zuerst von <strong>Torsten May</strong> geprüft. Du bekommst eine E-Mail nach der Entscheidung.
+              <div style={{...S.card,background:C.amberLight,border:"1px solid #fcd34d",marginBottom:14,padding:"10px 14px",fontSize:12,color:"#92400e"}}>
+                ⏳ Dein Antrag wird zuerst von <strong>{approverName}</strong> geprüft. Du bekommst eine E-Mail nach der Entscheidung.
               </div>
             )}
 
@@ -910,7 +922,7 @@ export default function App(){
                     <div style={{fontSize:11,fontWeight:600,color:C.text}}>{v.name}</div>
                     <div style={{fontSize:10,color:C.textLight}}>{v.role}{v.fixed?" · Pflicht":""}</div>
                   </div>
-                  <div style={{fontSize:10,color:C.amber,fontWeight:600}}>{v.from.slice(5)} – {v.to.slice(5)}</div>
+                  <div style={{fontSize:10,color:C.amber,fontWeight:600}}>{formatDate(v.from)} – {formatDate(v.to)}</div>
                 </div>
               ))}
             </div>}
@@ -922,8 +934,10 @@ export default function App(){
           </div>
         )}
 
+        {/* ADMIN */}
         {view==="admin"&&user.isAdmin&&<Admin data={data} updateData={updateData} setView={setView}/>}
 
+        {/* SUCCESS */}
         {view==="success"&&(
           <div style={{textAlign:"center",paddingTop:50}}>
             <div style={{fontSize:60,marginBottom:16}}>✅</div>
