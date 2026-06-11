@@ -4,18 +4,18 @@ import { useState, useEffect } from "react";
 const SUPABASE_URL = "https://wgyxwbrjrkyudkdyrqpj.supabase.co";
 const SUPABASE_KEY = "sb_publishable_iiy75P-b6qe_2KLEN_M0Kg_CgdZkkkH";
 
-async function supabase(method, table, data = null, filter = "") {
+async function db(method, table, data = null, filter = "") {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${filter}`, {
     method,
     headers: {
       "Content-Type": "application/json",
       "apikey": SUPABASE_KEY,
       "Authorization": `Bearer ${SUPABASE_KEY}`,
-      "Prefer": method === "POST" ? "return=representation" : "",
+      "Prefer": method === "POST" ? "return=representation" : "return=representation",
     },
     body: data ? JSON.stringify(data) : undefined,
   });
-  if (!res.ok) return null;
+  if (!res.ok) { console.error("DB error:", res.status, await res.text()); return null; }
   try { return await res.json(); } catch { return null; }
 }
 
@@ -29,16 +29,7 @@ async function sendEmail(vonName, vonRolle, meldungArt, anName, nachricht, betre
         service_id: "service_gxg015l",
         template_id: "template_av4scen",
         user_id: "LNWETx8iRbXRi2zvl",
-        template_params: {
-          betreff,
-          von_name: vonName,
-          von_rolle: vonRolle,
-          meldung_art: meldungArt,
-          an_name: anName,
-          nachricht,
-          to_email: toEmail,
-          genehmigung_link: genehmigungLink,
-        }
+        template_params: { betreff, von_name: vonName, von_rolle: vonRolle, meldung_art: meldungArt, an_name: anName, nachricht, to_email: toEmail, genehmigung_link: genehmigungLink }
       })
     });
     console.log("Email status:", response.status);
@@ -65,94 +56,29 @@ function formatDate(ds) {
   return `${d}.${m}.${y}`;
 }
 
-// Rollen die Genehmigung durch Torsten May brauchen
 const APPROVAL_ROLES_TORSTEN = ["Monteur","Vorarbeiter","Lagerist","Azubi"];
-// Rollen die Genehmigung durch Ralf Klukas brauchen
 const APPROVAL_ROLES_RALF = ["GF","Büro","Bauleiter"];
-
-// ─── DATA ─────────────────────────────────────────────────────────────────────
-const DEFAULT_EMPLOYEES = [
-  {id:1,  name:"Klukas, Ralf",       firstName:"Ralf",      role:"GF",          email:"ralf.klukas@klukas-gerueste.de",       lkwGross:true,  lkwKlein:false,pkw:true,  password:"ralf2024",      isAdmin:true,  urlaubstage:25},
-  {id:2,  name:"Gulde, Thomas",       firstName:"Thomas",    role:"GF",          email:"thomas.gulde@klukas-gerueste.de",       lkwGross:false, lkwKlein:true, pkw:true,  password:"thomas2024",    isAdmin:true,  urlaubstage:25},
-  {id:3,  name:"May, Torsten",        firstName:"Torsten",   role:"Bauleiter",   email:"torsten.may@klukas-gerueste.de",        lkwGross:true,  lkwKlein:false,pkw:false, password:"torsten2024",   isAdmin:false, urlaubstage:30},
-  {id:4,  name:"Kademann, Falk",      firstName:"Falk",      role:"Bauleiter",   email:"falk.kademann@klukas-gerueste.de",      lkwGross:false, lkwKlein:true, pkw:true,  password:"falk2024",      isAdmin:false, urlaubstage:25},
-  {id:5,  name:"Brausewetter, Maik",  firstName:"Maik",      role:"Bauleiter",   email:"maik.brausewetter@klukas-gerueste.de",  lkwGross:false, lkwKlein:false,pkw:true,  password:"maik2024",      isAdmin:false, urlaubstage:25},
-  {id:6,  name:"Anders, Elke",        firstName:"Elke",      role:"Büro",        email:"elke.anders@klukas-gerueste.de",        lkwGross:false, lkwKlein:false,pkw:true,  password:"elke2024",      isAdmin:false, urlaubstage:30},
-  {id:7,  name:"Dörschel, Angela",    firstName:"Angela",    role:"Büro",        email:"angela.doerschel@klukas-gerueste.de",   lkwGross:false, lkwKlein:false,pkw:true,  password:"angela2024",    isAdmin:false, urlaubstage:30},
-  {id:8,  name:"Fuchs, Salome",       firstName:"Salome",    role:"Büro",        email:"salome.fuchs@klukas-gerueste.de",       lkwGross:false, lkwKlein:false,pkw:true,  password:"salome2024",    isAdmin:true,  urlaubstage:26},
-  {id:9,  name:"Gillhoff, Oliver",    firstName:"Oliver",    role:"Lagerist",    email:"oliver.gillhoff@klukas-gerueste.de",    lkwGross:true,  lkwKlein:true, pkw:true,  password:"oliver2024",    isAdmin:false, urlaubstage:30},
-  {id:10, name:"Dörschel, Tobias",    firstName:"Tobias",    role:"Lagerist",    email:"tobias.doerschel@klukas-gerueste.de",   lkwGross:false, lkwKlein:false,pkw:true,  password:"tobias2024",    isAdmin:false, urlaubstage:30},
-  {id:11, name:"Hagedorn, Marko",     firstName:"Marko",     role:"Lagerist",    email:"marko.hagedorn@klukas-gerueste.de",     lkwGross:false, lkwKlein:false,pkw:true,  password:"marko2024",     isAdmin:false, urlaubstage:30},
-  {id:12, name:"Schimank, Frank",     firstName:"Frank",     role:"Vorarbeiter", email:"frank.schimank@klukas-gerueste.de",     lkwGross:false, lkwKlein:true, pkw:true,  password:"frankS2024",    isAdmin:false, urlaubstage:30},
-  {id:13, name:"Schmidt, Frank",      firstName:"Frank",     role:"Vorarbeiter", email:"frank.schmidt@klukas-gerueste.de",      lkwGross:false, lkwKlein:false,pkw:false, password:"frankSC2024",   isAdmin:false, urlaubstage:30},
-  {id:14, name:"Lehmann, Jan",        firstName:"Jan",       role:"Monteur",     email:"jan.lehmann@klukas-gerueste.de",        lkwGross:false, lkwKlein:true, pkw:true,  password:"jan2024",       isAdmin:false, urlaubstage:30},
-  {id:15, name:"Linke, Andreas",      firstName:"Andreas",   role:"Monteur",     email:"andreas.linke@klukas-gerueste.de",      lkwGross:true,  lkwKlein:true, pkw:true,  password:"andreas2024",   isAdmin:false, urlaubstage:30},
-  {id:16, name:"Rasp, Oliver",        firstName:"Oliver",    role:"Monteur",     email:"oliver.rasp@klukas-gerueste.de",        lkwGross:true,  lkwKlein:true, pkw:true,  password:"oliverR2024",   isAdmin:false, urlaubstage:30},
-  {id:17, name:"Geiger, Charly",      firstName:"Charly",    role:"Monteur",     email:"charly.geiger@klukas-gerueste.de",      lkwGross:true,  lkwKlein:true, pkw:true,  password:"charly2024",    isAdmin:false, urlaubstage:30},
-  {id:18, name:"Böttcher, Harley",    firstName:"Harley",    role:"Monteur",     email:"harley.boettcher@klukas-gerueste.de",   lkwGross:true,  lkwKlein:true, pkw:true,  password:"harley2024",    isAdmin:false, urlaubstage:30},
-  {id:19, name:"Ellmer, Holger",      firstName:"Holger",    role:"Vorarbeiter", email:"holger.ellmer@klukas-gerueste.de",      lkwGross:true,  lkwKlein:true, pkw:true,  password:"holger2024",    isAdmin:false, urlaubstage:30},
-  {id:20, name:"Weiß, Alexandra",     firstName:"Alexandra", role:"Monteur",     email:"alexandra.weiss@klukas-gerueste.de",    lkwGross:false, lkwKlein:false,pkw:true,  password:"alexandra2024", isAdmin:false, urlaubstage:30},
-  {id:21, name:"Eschmann, Anton",     firstName:"Anton",     role:"Vorarbeiter", email:"anton.eschmann@klukas-gerueste.de",     lkwGross:true,  lkwKlein:true, pkw:true,  password:"anton2024",     isAdmin:false, urlaubstage:30},
-  {id:22, name:"Graf, René",          firstName:"René",      role:"Monteur",     email:"rene.graf@klukas-gerueste.de",          lkwGross:false, lkwKlein:false,pkw:true,  password:"rene2024",      isAdmin:false, urlaubstage:30},
-  {id:23, name:"Geiger, Florian",     firstName:"Florian",   role:"Azubi",       email:"florian.geiger@klukas-gerueste.de",     lkwGross:false, lkwKlein:false,pkw:false, password:"florian2024",   isAdmin:false, urlaubstage:30},
-  {id:24, name:"Ergin, Mehmet",       firstName:"Mehmet",    role:"Azubi",       email:"mehmet.ergin@klukas-gerueste.de",       lkwGross:false, lkwKlein:false,pkw:true,  password:"mehmet2024",    isAdmin:false, urlaubstage:30},
-  {id:25, name:"Pietsch, Kay",        firstName:"Kay",       role:"Azubi",       email:"kay.pietsch@klukas-gerueste.de",        lkwGross:false, lkwKlein:false,pkw:false, password:"kay2024",       isAdmin:false, urlaubstage:30},
-];
+const ROLES = ["GF","Bauleiter","Büro","Lagerist","Vorarbeiter","Monteur","Azubi"];
 
 const DEFAULT_RULES = {
   maxLkwGross:3, maxLkwKlein:1, maxVorarbeiter:2,
-  blockedMonths:[11],
-  blockedRoles:["Monteur","Lagerist","Azubi"],
+  blockedMonths:[11], blockedRoles:["Monteur","Lagerist","Azubi"],
   summerBlock:{start:"2027-07-10",end:"2027-08-20"}
 };
 
-const DEFAULT_FIXED = [];
-const DEFAULT_BOOKED = [];
 const DEFAULT_MELDUNGEN = [
   {key:"arbeitsmittel",icon:"🔧",label:"Arbeitsmittel",desc:"Fehlendes / defektes Material",recipientIds:[7],multiSelect:false},
-  {key:"gespraech",   icon:"💬",label:"Gespräch",      desc:"Gesprächswunsch",              recipientIds:[1,2,3,4,5],multiSelect:true,coordinatorId:8},
-  {key:"krank",       icon:"🤒",label:"Krankmeldung",  desc:"Krankheit melden",             recipientIds:[4,3,6],multiSelect:false},
+  {key:"gespraech",icon:"💬",label:"Gespräch",desc:"Gesprächswunsch",recipientIds:[1,2,3,4,5],multiSelect:true,coordinatorId:8},
+  {key:"krank",icon:"🤒",label:"Krankmeldung",desc:"Krankheit melden",recipientIds:[4,3,6],multiSelect:false},
 ];
-const STORAGE_KEY = "klukas_v7";
-const ROLES = ["GF","Bauleiter","Büro","Lagerist","Vorarbeiter","Monteur","Azubi"];
 
-function loadData() {
-  try {
-    const r = localStorage.getItem(STORAGE_KEY);
-    if (r) {
-      const p = JSON.parse(r);
-      return {
-        employees: p.employees||DEFAULT_EMPLOYEES,
-        rules: p.rules||DEFAULT_RULES,
-        fixedVacations: p.fixedVacations||DEFAULT_FIXED,
-        bookedVacations: p.bookedVacations||DEFAULT_BOOKED,
-        meldungTypes: p.meldungTypes||DEFAULT_MELDUNGEN,
-        sentItems: p.sentItems||[]
-      };
-    }
-  } catch(e){}
-  return {employees:DEFAULT_EMPLOYEES,rules:DEFAULT_RULES,fixedVacations:DEFAULT_FIXED,bookedVacations:DEFAULT_BOOKED,meldungTypes:DEFAULT_MELDUNGEN,sentItems:[]};
-}
-function saveData(d){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(d));}catch(e){}}
+const STORAGE_KEY_RULES = "klukas_rules_v1";
+function loadRules(){try{const r=localStorage.getItem(STORAGE_KEY_RULES);if(r) return JSON.parse(r);}catch(e){}return DEFAULT_RULES;}
+function saveRules(r){try{localStorage.setItem(STORAGE_KEY_RULES,JSON.stringify(r));}catch(e){}}
 
-function getAllVacs(data){
-  const all=[...(data.bookedVacations||[])];
-  for(const fv of (data.fixedVacations||[])){
-    for(const eid of fv.employeeIds){
-      const e=data.employees.find(x=>x.id===eid);
-      if(e) all.push({employeeId:eid,name:e.name,role:e.role,lkwGross:e.lkwGross,lkwKlein:e.lkwKlein,from:fv.from,to:fv.to,fixed:true});
-    }
-  }
-  return all;
-}
-
-function getUsedDays(employeeId, data) {
-  return getAllVacs(data).filter(v=>v.employeeId===employeeId).reduce((sum,v)=>sum+countWorkdays(v.from,v.to),0);
-}
-
-function checkConflict(from,to,emp,data){
+// ─── CONFLICT CHECK ───────────────────────────────────────────────────────────
+function checkConflict(from,to,emp,bookedVacations,rules){
   if(!from||!to||from>to) return null;
-  const rules=data.rules;
   let d=new Date(from); const end=new Date(to);
   while(d<=end){
     if((rules.blockedMonths||[]).includes(d.getMonth())){
@@ -162,18 +88,14 @@ function checkConflict(from,to,emp,data){
     d.setDate(d.getDate()+1);
   }
   const sb=rules.summerBlock;
-  if(sb&&from<=sb.end&&to>=sb.start){
-    const inGroup=(data.fixedVacations||[]).some(fv=>fv.employeeIds.includes(emp.id)&&from>=fv.from&&to<=fv.to);
-    if(!inGroup) return {msg:"Sommerblock: Urlaub nur für eingeplante Gruppen möglich."};
-  }
+  if(sb&&from<=sb.end&&to>=sb.start) return {msg:"Sommerblock: Urlaub nur für eingeplante Gruppen möglich."};
   const requestedDays=countWorkdays(from,to);
-  const usedDays=getUsedDays(emp.id,data);
+  const usedDays=bookedVacations.filter(v=>v.mitarbeiter_id===emp.id).reduce((sum,v)=>sum+countWorkdays(v.von,v.bis),0);
   const remaining=(emp.urlaubstage||30)-usedDays;
   if(requestedDays>remaining) return {msg:`Nicht genug Urlaubstage. Du hast noch ${remaining} Tage übrig, beantragst aber ${requestedDays} Tage.`};
-  const all=getAllVacs(data);
-  function maxOv(fn){let m=0;let dd=new Date(from);while(dd<=new Date(to)){const ds=dd.toISOString().split("T")[0];const c=all.filter(v=>v.employeeId!==emp.id&&fn(v)&&dateInRange(ds,v.from,v.to)).length;if(c>m)m=c;dd.setDate(dd.getDate()+1);}return m;}
-  if(emp.lkwGross&&maxOv(v=>v.lkwGross)>=rules.maxLkwGross) return {msg:`Bereits ${rules.maxLkwGross} LKW-Groß-Fahrer im Urlaub.`};
-  if(emp.lkwKlein&&!emp.lkwGross&&maxOv(v=>v.lkwKlein&&!v.lkwGross)>=rules.maxLkwKlein) return {msg:`Bereits ${rules.maxLkwKlein} LKW-Klein-Fahrer im Urlaub.`};
+  function maxOv(fn){let m=0;let dd=new Date(from);while(dd<=new Date(to)){const ds=dd.toISOString().split("T")[0];const c=bookedVacations.filter(v=>v.mitarbeiter_id!==emp.id&&fn(v)&&dateInRange(ds,v.von,v.bis)).length;if(c>m)m=c;dd.setDate(dd.getDate()+1);}return m;}
+  if(emp.lkw_gross&&maxOv(v=>v.lkw_gross)>=rules.maxLkwGross) return {msg:`Bereits ${rules.maxLkwGross} LKW-Groß-Fahrer im Urlaub.`};
+  if(emp.lkw_klein&&!emp.lkw_gross&&maxOv(v=>v.lkw_klein&&!v.lkw_gross)>=rules.maxLkwKlein) return {msg:`Bereits ${rules.maxLkwKlein} LKW-Klein-Fahrer im Urlaub.`};
   if(emp.role==="Vorarbeiter"&&maxOv(v=>v.role==="Vorarbeiter")>=rules.maxVorarbeiter) return {msg:`Bereits ${rules.maxVorarbeiter} Vorarbeiter im Urlaub.`};
   return null;
 }
@@ -215,40 +137,26 @@ function Logo({size=1}){
 
 function Avatar({emp,size=36}){
   const c=roleColor(emp.role);
-  return <div style={{width:size,height:size,borderRadius:"50%",background:c+"18",border:`2px solid ${c}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.3,fontWeight:700,color:c,flexShrink:0}}>{getInitials(emp.name)}</div>;
-}
-
-function VacationDaysBar({emp,data}){
-  const total=emp.urlaubstage||30;
-  const used=getUsedDays(emp.id,data);
-  const remaining=total-used;
-  const pct=Math.min(100,(used/total)*100);
-  const color=remaining<=5?C.red:remaining<=10?C.amber:C.green;
-  return (
-    <div style={{...S.card,marginBottom:14,padding:"12px 14px"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-        <div style={{fontSize:12,fontWeight:700,color:C.text}}>Urlaubstage {new Date().getFullYear()}</div>
-        <div style={{fontSize:12,fontWeight:700,color}}>{remaining} von {total} Tagen übrig</div>
-      </div>
-      <div style={{background:C.bg,borderRadius:6,height:8,overflow:"hidden"}}>
-        <div style={{background:color,height:"100%",width:`${pct}%`,borderRadius:6,transition:"width 0.3s"}}/>
-      </div>
-      {used>0&&<div style={{fontSize:10,color:C.textLight,marginTop:4}}>{used} Tage bereits gebucht</div>}
-    </div>
-  );
+  const initials=((emp.first_name?.[0]||"")+(emp.name?.split(", ")[0]?.[0]||"")).toUpperCase();
+  return <div style={{width:size,height:size,borderRadius:"50%",background:c+"18",border:`2px solid ${c}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.3,fontWeight:700,color:c,flexShrink:0}}>{initials}</div>;
 }
 
 // ─── GENEHMIGUNG SEITE ────────────────────────────────────────────────────────
-function ApprovalPage({antragId, employees}){
+function ApprovalPage({antragId}){
   const [antrag,setAntrag]=useState(null);
+  const [employees,setEmployees]=useState([]);
   const [loading,setLoading]=useState(true);
   const [done,setDone]=useState(null);
   const [processing,setProcessing]=useState(false);
 
   useEffect(()=>{
     async function load(){
-      const result=await supabase("GET",`urlaubsantraege?id=eq.${antragId}&select=*`);
-      if(result&&result.length>0) setAntrag(result[0]);
+      const [a,e]=await Promise.all([
+        db("GET","urlaubsantraege",null,`?id=eq.${antragId}&select=*`),
+        db("GET","mitarbeiter",null,"?select=*")
+      ]);
+      if(a&&a.length>0) setAntrag(a[0]);
+      if(e) setEmployees(e);
       setLoading(false);
     }
     load();
@@ -257,57 +165,38 @@ function ApprovalPage({antragId, employees}){
   async function decide(approved){
     setProcessing(true);
     const status=approved?"genehmigt":"abgelehnt";
-    await supabase("PATCH",`urlaubsantraege?id=eq.${antragId}`,{status,entschieden_am:new Date().toISOString()});
+    await db("PATCH","urlaubsantraege",{status,entschieden_am:new Date().toISOString()},`?id=eq.${antragId}`);
     const emp=employees.find(e=>e.id===antrag.mitarbeiter_id);
     const empEmail=emp?.email||"";
 
     if(approved){
+      // Urlaub als gebucht speichern
+      await db("POST","gebuchte_urlaube",{
+        mitarbeiter_id:antrag.mitarbeiter_id, name:antrag.mitarbeiter_name,
+        role:antrag.mitarbeiter_rolle, lkw_gross:emp?.lkw_gross||false,
+        lkw_klein:emp?.lkw_klein||false, von:antrag.von, bis:antrag.bis
+      });
       // Info an Mitarbeiter
-      await sendEmail("Ralf Klukas / Torsten May","","Urlaubsgenehmigung",antrag.mitarbeiter_name,
+      await sendEmail("Klukas-Gerüste","","Urlaubsgenehmigung",antrag.mitarbeiter_name,
         `Dein Urlaubsantrag vom ${formatDate(antrag.von)} bis ${formatDate(antrag.bis)} (${antrag.arbeitstage} Arbeitstage) wurde GENEHMIGT.`,
-        `✅ Urlaub genehmigt: ${antrag.mitarbeiter_name}`, empEmail, "");
+        `✅ Urlaub genehmigt: ${antrag.mitarbeiter_name}`,empEmail,"");
       // Info an Elke (ohne Button)
-      await sendEmail("Ralf Klukas / Torsten May","","Urlaubsinfo","Elke Anders",
-        `Zur Info: Urlaubsantrag von ${antrag.mitarbeiter_name} (${antrag.mitarbeiter_rolle}) vom ${formatDate(antrag.von)} bis ${formatDate(antrag.bis)} wurde genehmigt.`,
-        `ℹ️ Urlaub genehmigt: ${antrag.mitarbeiter_name}`, "elke.anders@klukas-gerueste.de", "");
+      await sendEmail("Klukas-Gerüste","","Urlaubsinfo","Elke Anders",
+        `Zur Info: ${antrag.mitarbeiter_name} (${antrag.mitarbeiter_rolle}) hat Urlaub vom ${formatDate(antrag.von)} bis ${formatDate(antrag.bis)} – genehmigt.`,
+        `ℹ️ Urlaub genehmigt: ${antrag.mitarbeiter_name}`,"elke.anders@klukas-gerueste.de","");
     } else {
-      // Info an Mitarbeiter
-      await sendEmail("Ralf Klukas / Torsten May","","Urlaubsablehnung",antrag.mitarbeiter_name,
+      await sendEmail("Klukas-Gerüste","","Urlaubsablehnung",antrag.mitarbeiter_name,
         `Dein Urlaubsantrag vom ${formatDate(antrag.von)} bis ${formatDate(antrag.bis)} wurde ABGELEHNT. Bitte wende dich an deinen Vorgesetzten.`,
-        `❌ Urlaub abgelehnt: ${antrag.mitarbeiter_name}`, empEmail, "");
+        `❌ Urlaub abgelehnt: ${antrag.mitarbeiter_name}`,empEmail,"");
     }
     setDone(approved);
     setProcessing(false);
   }
 
   if(loading) return <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif"}}><div style={{fontSize:14,color:C.textLight}}>Lädt...</div></div>;
-
-  if(!antrag) return (
-    <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",padding:24}}>
-      <Logo scale={1.2}/><div style={{marginTop:32,fontSize:16,color:C.red,fontWeight:700}}>Antrag nicht gefunden</div>
-    </div>
-  );
-
-  if(antrag.status==="genehmigt"||antrag.status==="abgelehnt") return (
-    <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",padding:24}}>
-      <Logo size={1.2}/>
-      <div style={{marginTop:32,textAlign:"center"}}>
-        <div style={{fontSize:40,marginBottom:12}}>{antrag.status==="genehmigt"?"✅":"❌"}</div>
-        <div style={{fontSize:16,fontWeight:700,color:C.text}}>Dieser Antrag wurde bereits {antrag.status}.</div>
-      </div>
-    </div>
-  );
-
-  if(done!==null) return (
-    <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",padding:24}}>
-      <Logo size={1.2}/>
-      <div style={{marginTop:32,textAlign:"center"}}>
-        <div style={{fontSize:50,marginBottom:12}}>{done?"✅":"❌"}</div>
-        <div style={{fontSize:18,fontWeight:800,color:C.text,marginBottom:8}}>{done?"Urlaub genehmigt!":"Urlaub abgelehnt"}</div>
-        <div style={{fontSize:13,color:C.textMid}}>{antrag.mitarbeiter_name} wurde informiert.{done&&" Elke Anders wurde ebenfalls informiert."}</div>
-      </div>
-    </div>
-  );
+  if(!antrag) return <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",padding:24}}><Logo size={1.2}/><div style={{marginTop:32,fontSize:16,color:C.red,fontWeight:700}}>Antrag nicht gefunden</div></div>;
+  if(antrag.status==="genehmigt"||antrag.status==="abgelehnt") return <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",padding:24}}><Logo size={1.2}/><div style={{marginTop:32,textAlign:"center"}}><div style={{fontSize:40,marginBottom:12}}>{antrag.status==="genehmigt"?"✅":"❌"}</div><div style={{fontSize:16,fontWeight:700,color:C.text}}>Dieser Antrag wurde bereits {antrag.status}.</div></div></div>;
+  if(done!==null) return <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif",padding:24}}><Logo size={1.2}/><div style={{marginTop:32,textAlign:"center"}}><div style={{fontSize:50,marginBottom:12}}>{done?"✅":"❌"}</div><div style={{fontSize:18,fontWeight:800,color:C.text,marginBottom:8}}>{done?"Urlaub genehmigt!":"Urlaub abgelehnt"}</div><div style={{fontSize:13,color:C.textMid}}>{antrag.mitarbeiter_name} wurde informiert.{done&&" Elke Anders wurde ebenfalls informiert."}</div></div></div>;
 
   return (
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'DM Sans',sans-serif",padding:24,display:"flex",flexDirection:"column",alignItems:"center"}}>
@@ -320,10 +209,7 @@ function ApprovalPage({antragId, employees}){
             <div style={{width:44,height:44,borderRadius:"50%",background:C.red+"18",border:`2px solid ${C.red}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:C.red,flexShrink:0}}>
               {antrag.mitarbeiter_name.split(", ").map(p=>p[0]).join("")}
             </div>
-            <div>
-              <div style={{fontSize:14,fontWeight:700,color:C.text}}>{antrag.mitarbeiter_name}</div>
-              <div style={{fontSize:11,color:roleColor(antrag.mitarbeiter_rolle)}}>{antrag.mitarbeiter_rolle}</div>
-            </div>
+            <div><div style={{fontSize:14,fontWeight:700,color:C.text}}>{antrag.mitarbeiter_name}</div><div style={{fontSize:11,color:roleColor(antrag.mitarbeiter_rolle)}}>{antrag.mitarbeiter_rolle}</div></div>
           </div>
           {[["📅 Zeitraum",`${formatDate(antrag.von)} – ${formatDate(antrag.bis)}`],["⏱ Arbeitstage",`${antrag.arbeitstage} Tage`],["📝 Status","Ausstehend"]].map(([l,v])=>(
             <div key={l} style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
@@ -333,14 +219,8 @@ function ApprovalPage({antragId, employees}){
           ))}
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <button onClick={()=>decide(false)} disabled={processing}
-            style={{background:processing?"#e5e7eb":C.white,border:`2px solid ${C.red}`,borderRadius:10,padding:"14px",color:C.red,fontWeight:700,fontSize:14,cursor:processing?"not-allowed":"pointer"}}>
-            ❌ Ablehnen
-          </button>
-          <button onClick={()=>decide(true)} disabled={processing}
-            style={{background:processing?"#e5e7eb":`linear-gradient(135deg,${C.green},#15803d)`,border:"none",borderRadius:10,padding:"14px",color:"#fff",fontWeight:700,fontSize:14,cursor:processing?"not-allowed":"pointer"}}>
-            ✅ Genehmigen
-          </button>
+          <button onClick={()=>decide(false)} disabled={processing} style={{background:processing?"#e5e7eb":C.white,border:`2px solid ${C.red}`,borderRadius:10,padding:"14px",color:C.red,fontWeight:700,fontSize:14,cursor:processing?"not-allowed":"pointer"}}>❌ Ablehnen</button>
+          <button onClick={()=>decide(true)} disabled={processing} style={{background:processing?"#e5e7eb":`linear-gradient(135deg,${C.green},#15803d)`,border:"none",borderRadius:10,padding:"14px",color:"#fff",fontWeight:700,fontSize:14,cursor:processing?"not-allowed":"pointer"}}>✅ Genehmigen</button>
         </div>
       </div>
     </div>
@@ -368,8 +248,7 @@ function Login({employees,onLogin}){
               {filtered.map(emp=>(
                 <button key={emp.id} onClick={()=>{setSel(emp);setPw("");setErr("");}}
                   style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",textAlign:"left",transition:"border-color 0.15s"}}
-                  onMouseOver={e=>e.currentTarget.style.borderColor=C.red}
-                  onMouseOut={e=>e.currentTarget.style.borderColor=C.border}>
+                  onMouseOver={e=>e.currentTarget.style.borderColor=C.red} onMouseOut={e=>e.currentTarget.style.borderColor=C.border}>
                   <Avatar emp={emp} size={34}/>
                   <div><div style={{fontSize:13,fontWeight:600,color:C.text}}>{emp.name}</div><div style={{fontSize:11,color:roleColor(emp.role)}}>{emp.role}</div></div>
                 </button>
@@ -398,16 +277,14 @@ function Login({employees,onLogin}){
 }
 
 // ─── KALENDER ─────────────────────────────────────────────────────────────────
-function Calendar({year,month,onChangeMonth,vacFrom,vacTo,conflict,user,data}){
-  const allVacs=getAllVacs(data);
+function Calendar({year,month,onChangeMonth,vacFrom,vacTo,conflict,user,bookedVacations,rules}){
   const days=new Date(year,month+1,0).getDate();
   const firstDay=(new Date(year,month,1).getDay()+6)%7;
   const monthName=new Date(year,month).toLocaleDateString("de-DE",{month:"long",year:"numeric"});
   function cell(n){
     const ds=`${year}-${String(month+1).padStart(2,"0")}-${String(n).padStart(2,"0")}`;
     const sel=vacFrom&&vacTo&&vacFrom<=ds&&ds<=vacTo;
-    const busy=allVacs.some(v=>v.employeeId!==user.id&&dateInRange(ds,v.from,v.to));
-    const rules=data.rules;
+    const busy=bookedVacations.some(v=>v.mitarbeiter_id!==user.id&&dateInRange(ds,v.von,v.bis));
     const blk=(rules.blockedMonths||[]).includes(new Date(ds).getMonth())&&(rules.blockedRoles||[]).includes(user.role);
     const sb=rules.summerBlock; const sum=sb&&ds>=sb.start&&ds<=sb.end;
     if(sel&&conflict) return {bg:C.redLight,bd:`1.5px solid ${C.red}`,c:C.red};
@@ -450,13 +327,13 @@ function EmpForm({emp:init,onSave,onCancel}){
     <div style={{background:C.bg,border:`1.5px solid ${C.redBorder}`,borderRadius:12,padding:14,marginBottom:10}}>
       <div style={{fontSize:12,fontWeight:700,color:C.red,marginBottom:12}}>{emp.id?"Bearbeiten":"Neuer Mitarbeiter"}</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-        {[["Name","name"],["Rufname","firstName"],["E-Mail","email"],["Passwort","password"]].map(([l,k])=>(
+        {[["Name (Nachname, Vorname)","name"],["Rufname","first_name"],["E-Mail","email"],["Passwort","password"]].map(([l,k])=>(
           <div key={k}><label style={S.label}>{l}</label><input value={emp[k]||""} onChange={e=>set(k,e.target.value)} style={{...S.input,fontSize:11,padding:"7px 8px"}}/></div>
         ))}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
         <div><label style={S.label}>Rolle</label>
-          <select value={emp.role} onChange={e=>set("role",e.target.value)} style={{...S.input,fontSize:11,padding:"7px 8px"}}>
+          <select value={emp.role||"Monteur"} onChange={e=>set("role",e.target.value)} style={{...S.input,fontSize:11,padding:"7px 8px"}}>
             {ROLES.map(r=><option key={r} value={r}>{r}</option>)}
           </select>
         </div>
@@ -465,7 +342,7 @@ function EmpForm({emp:init,onSave,onCancel}){
         </div>
       </div>
       <div style={{display:"flex",gap:12,marginBottom:12,flexWrap:"wrap"}}>
-        {[["LKW Groß","lkwGross"],["LKW Klein","lkwKlein"],["PKW","pkw"],["Admin","isAdmin"]].map(([l,k])=>(
+        {[["LKW Groß","lkw_gross"],["LKW Klein","lkw_klein"],["PKW","pkw"],["Admin","is_admin"]].map(([l,k])=>(
           <label key={k} style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:C.textMid,cursor:"pointer"}}>
             <input type="checkbox" checked={!!emp[k]} onChange={e=>set(k,e.target.checked)} style={{accentColor:C.red}}/>{l}
           </label>
@@ -479,53 +356,74 @@ function EmpForm({emp:init,onSave,onCancel}){
   );
 }
 
-function Admin({data,updateData,setView}){
+function Admin({employees,setEmployees,rules,setRules,setView,meldungen}){
   const [tab,setTab]=useState("employees");
   const [editEmp,setEditEmp]=useState(null);
   const [newEmp,setNewEmp]=useState(null);
-  const [rules,setRules]=useState({...data.rules});
+  const [localRules,setLocalRules]=useState({...rules});
   const [saved,setSaved]=useState(false);
   const [antraege,setAntraege]=useState([]);
+  const [loading,setLoading]=useState(false);
 
   useEffect(()=>{
-    if(tab==="antraege") supabase("GET","urlaubsantraege?order=erstellt_am.desc&select=*").then(r=>setAntraege(r||[]));
+    if(tab==="antraege"){
+      setLoading(true);
+      db("GET","urlaubsantraege",null,"?order=erstellt_am.desc&select=*").then(r=>{setAntraege(r||[]);setLoading(false);});
+    }
   },[tab]);
 
-  function saveEmp(emp){
-    let emps;
-    if(emp.id){emps=data.employees.map(e=>e.id===emp.id?emp:e);}
-    else{const nid=Math.max(...data.employees.map(e=>e.id))+1;emps=[...data.employees,{...emp,id:nid}];}
-    updateData({...data,employees:emps});setEditEmp(null);setNewEmp(null);
+  async function saveEmp(emp){
+    if(emp.id){
+      await db("PATCH","mitarbeiter",emp,`?id=eq.${emp.id}`);
+      setEmployees(prev=>prev.map(e=>e.id===emp.id?emp:e));
+    } else {
+      const nid=Math.max(...employees.map(e=>e.id))+1;
+      const newE={...emp,id:nid};
+      await db("POST","mitarbeiter",newE);
+      setEmployees(prev=>[...prev,newE]);
+    }
+    setEditEmp(null);setNewEmp(null);
   }
-  function delEmp(id){if(!confirm("Mitarbeiter wirklich löschen?")) return;updateData({...data,employees:data.employees.filter(e=>e.id!==id)});}
-  function saveRules(){updateData({...data,rules});setSaved(true);setTimeout(()=>setSaved(false),2000);}
+
+  async function delEmp(id){
+    if(!confirm("Mitarbeiter wirklich löschen?")) return;
+    await db("DELETE","mitarbeiter",null,`?id=eq.${id}`);
+    setEmployees(prev=>prev.filter(e=>e.id!==id));
+  }
+
+  function saveRulesLocal(){
+    saveRules(localRules);
+    setRules(localRules);
+    setSaved(true);
+    setTimeout(()=>setSaved(false),2000);
+  }
 
   return (
     <div>
       <button onClick={()=>setView("dashboard")} style={S.back}>‹ Zurück</button>
       <div style={{fontSize:18,fontWeight:800,marginBottom:2,color:C.text}}>⚙ Admin-Bereich</div>
-      <div style={{fontSize:12,color:C.textLight,marginBottom:16}}>Nur für Administratoren</div>
+      <div style={{fontSize:12,color:C.textLight,marginBottom:16}}>Änderungen gelten sofort auf allen Geräten</div>
       <div style={{display:"flex",gap:6,marginBottom:18,flexWrap:"wrap"}}>
-        {[["employees","Mitarbeiter"],["rules","Regeln"],["sent","Meldungen"],["antraege","Urlaubsanträge"]].map(([k,l])=>(
+        {[["employees","Mitarbeiter"],["rules","Regeln"],["antraege","Urlaubsanträge"]].map(([k,l])=>(
           <button key={k} onClick={()=>setTab(k)} style={{background:tab===k?C.redLight:C.white,border:tab===k?`1.5px solid ${C.red}`:`1px solid ${C.border}`,borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:12,fontWeight:600,color:tab===k?C.red:C.textLight}}>{l}</button>
         ))}
       </div>
 
       {tab==="employees"&&(
         <div>
-          <button onClick={()=>setNewEmp({name:"",firstName:"",role:"Monteur",email:"",lkwGross:false,lkwKlein:false,pkw:false,password:"",isAdmin:false,urlaubstage:30})}
+          <button onClick={()=>setNewEmp({name:"",first_name:"",role:"Monteur",email:"",lkw_gross:false,lkw_klein:false,pkw:false,password:"",is_admin:false,urlaubstage:30})}
             style={{width:"100%",...S.card,border:`1px dashed ${C.redBorder}`,padding:"10px",cursor:"pointer",color:C.red,fontWeight:600,fontSize:13,marginBottom:12,textAlign:"center",boxShadow:"none"}}>
             + Neuen Mitarbeiter hinzufügen
           </button>
           {newEmp&&<EmpForm emp={newEmp} onSave={saveEmp} onCancel={()=>setNewEmp(null)}/>}
-          {data.employees.map(emp=>(
+          {employees.map(emp=>(
             <div key={emp.id}>
               {editEmp?.id===emp.id?<EmpForm emp={editEmp} onSave={saveEmp} onCancel={()=>setEditEmp(null)}/>:(
                 <div style={{...S.card,borderRadius:10,padding:"10px 12px",marginBottom:6,display:"flex",alignItems:"center",gap:10}}>
                   <Avatar emp={emp} size={32}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:12,fontWeight:600,color:C.text,display:"flex",alignItems:"center",gap:6}}>
-                      {emp.name}{emp.isAdmin&&<span style={{fontSize:9,background:C.redLight,color:C.red,padding:"1px 5px",borderRadius:10,border:`1px solid ${C.redBorder}`}}>Admin</span>}
+                      {emp.name}{emp.is_admin&&<span style={{fontSize:9,background:C.redLight,color:C.red,padding:"1px 5px",borderRadius:10,border:`1px solid ${C.redBorder}`}}>Admin</span>}
                     </div>
                     <div style={{fontSize:10,color:C.textLight}}>{emp.role} · {emp.urlaubstage||30} Urlaubstage</div>
                   </div>
@@ -548,9 +446,9 @@ function Admin({data,updateData,setView}){
               <div key={k} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                 <div style={{fontSize:12,color:C.textMid}}>{l}</div>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <button onClick={()=>setRules(p=>({...p,[k]:Math.max(1,(p[k]||1)-1)}))} style={{width:30,height:30,background:C.bg,border:`1px solid ${C.border}`,borderRadius:6,color:C.red,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
-                  <span style={{fontSize:16,fontWeight:700,minWidth:24,textAlign:"center",color:C.text}}>{rules[k]}</span>
-                  <button onClick={()=>setRules(p=>({...p,[k]:(p[k]||1)+1}))} style={{width:30,height:30,background:C.bg,border:`1px solid ${C.border}`,borderRadius:6,color:C.red,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                  <button onClick={()=>setLocalRules(p=>({...p,[k]:Math.max(1,(p[k]||1)-1)}))} style={{width:30,height:30,background:C.bg,border:`1px solid ${C.border}`,borderRadius:6,color:C.red,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
+                  <span style={{fontSize:16,fontWeight:700,minWidth:24,textAlign:"center",color:C.text}}>{localRules[k]}</span>
+                  <button onClick={()=>setLocalRules(p=>({...p,[k]:(p[k]||1)+1}))} style={{width:30,height:30,background:C.bg,border:`1px solid ${C.border}`,borderRadius:6,color:C.red,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
                 </div>
               </div>
             ))}
@@ -559,8 +457,8 @@ function Admin({data,updateData,setView}){
             <div style={{fontSize:13,fontWeight:700,marginBottom:10,color:C.text}}>Dezember-Sperre (für welche Rollen?)</div>
             {ROLES.map(role=>(
               <label key={role} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,cursor:"pointer"}}>
-                <input type="checkbox" checked={(rules.blockedRoles||[]).includes(role)}
-                  onChange={e=>{const br=rules.blockedRoles||[];setRules(p=>({...p,blockedRoles:e.target.checked?[...br,role]:br.filter(r=>r!==role)}));}}
+                <input type="checkbox" checked={(localRules.blockedRoles||[]).includes(role)}
+                  onChange={e=>{const br=localRules.blockedRoles||[];setLocalRules(p=>({...p,blockedRoles:e.target.checked?[...br,role]:br.filter(r=>r!==role)}));}}
                   style={{accentColor:C.red}}/>
                 <span style={{fontSize:12,color:C.textMid}}>{role}</span>
               </label>
@@ -571,42 +469,22 @@ function Admin({data,updateData,setView}){
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
               {[["Von","start"],["Bis","end"]].map(([l,k])=>(
                 <div key={k}><label style={S.label}>{l}</label>
-                  <input type="date" value={rules.summerBlock?.[k]||""} onChange={e=>setRules(p=>({...p,summerBlock:{...p.summerBlock,[k]:e.target.value}}))} style={{...S.input,fontSize:11,padding:"7px 8px"}}/>
+                  <input type="date" value={localRules.summerBlock?.[k]||""} onChange={e=>setLocalRules(p=>({...p,summerBlock:{...p.summerBlock,[k]:e.target.value}}))} style={{...S.input,fontSize:11,padding:"7px 8px"}}/>
                 </div>
               ))}
             </div>
           </div>
-          <button onClick={saveRules} style={{...S.btn,background:saved?"linear-gradient(135deg,#16a34a,#15803d)":`linear-gradient(135deg,${C.red},#b91c1c)`}}>
+          <button onClick={saveRulesLocal} style={{...S.btn,background:saved?"linear-gradient(135deg,#16a34a,#15803d)":`linear-gradient(135deg,${C.red},#b91c1c)`}}>
             {saved?"✓ Gespeichert!":"Regeln speichern"}
           </button>
-        </div>
-      )}
-
-      {tab==="sent"&&(
-        <div>
-          <div style={{fontSize:12,color:C.textLight,marginBottom:12}}>Alle Meldungen & Anträge</div>
-          {(data.sentItems||[]).length===0&&<div style={{textAlign:"center",color:C.textLight,fontSize:13,padding:24}}>Noch keine Meldungen</div>}
-          {[...(data.sentItems||[])].reverse().map((item,i)=>{
-            const emp=data.employees.find(e=>e.id===item.employeeId);
-            return (
-              <div key={i} style={{...S.card,borderRadius:10,padding:12,marginBottom:8}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                  <div style={{fontSize:12,fontWeight:700,color:C.text}}>{item.label}</div>
-                  <div style={{fontSize:10,color:C.textLight}}>{item.date}</div>
-                </div>
-                <div style={{fontSize:11,color:C.textLight,marginBottom:4}}>Von: <span style={{color:C.text,fontWeight:600}}>{emp?.name||"?"}</span> ({emp?.role})</div>
-                <div style={{fontSize:11,color:C.textLight,marginBottom:item.text?6:0}}>An: <span style={{color:C.red,fontWeight:600}}>{item.to}</span></div>
-                {item.text&&<div style={{fontSize:11,color:C.textMid,background:C.bg,borderRadius:6,padding:"6px 8px",border:`1px solid ${C.border}`}}>{item.text}</div>}
-              </div>
-            );
-          })}
         </div>
       )}
 
       {tab==="antraege"&&(
         <div>
           <div style={{fontSize:12,color:C.textLight,marginBottom:12}}>Alle Urlaubsanträge</div>
-          {antraege.length===0&&<div style={{textAlign:"center",color:C.textLight,fontSize:13,padding:24}}>Noch keine Anträge</div>}
+          {loading&&<div style={{textAlign:"center",color:C.textLight,padding:24}}>Lädt...</div>}
+          {!loading&&antraege.length===0&&<div style={{textAlign:"center",color:C.textLight,fontSize:13,padding:24}}>Noch keine Anträge</div>}
           {antraege.map((a,i)=>{
             const statusColor=a.status==="genehmigt"?C.green:a.status==="abgelehnt"?C.red:C.amber;
             const statusBg=a.status==="genehmigt"?C.greenLight:a.status==="abgelehnt"?C.redLight:C.amberLight;
@@ -629,7 +507,10 @@ function Admin({data,updateData,setView}){
 
 // ─── HAUPT-APP ────────────────────────────────────────────────────────────────
 export default function App(){
-  const [data,setData]=useState(loadData());
+  const [employees,setEmployees]=useState([]);
+  const [bookedVacations,setBookedVacations]=useState([]);
+  const [rules,setRules]=useState(loadRules());
+  const [loading,setLoading]=useState(true);
   const [user,setUser]=useState(null);
   const [view,setView]=useState("dashboard");
   const [successMsg,setSuccessMsg]=useState("");
@@ -651,21 +532,40 @@ export default function App(){
   // Genehmigungsseite
   const urlParams=new URLSearchParams(window.location.search);
   const antragId=urlParams.get("antrag");
-  if(antragId) return <ApprovalPage antragId={antragId} employees={data.employees}/>;
+
+  // Daten laden
+  useEffect(()=>{
+    async function loadAll(){
+      const [emps,vacs]=await Promise.all([
+        db("GET","mitarbeiter",null,"?order=id&select=*"),
+        db("GET","gebuchte_urlaube",null,"?select=*"),
+      ]);
+      if(emps) setEmployees(emps);
+      if(vacs) setBookedVacations(vacs);
+      setLoading(false);
+    }
+    loadAll();
+  },[]);
 
   useEffect(()=>{
-    if(vFrom&&vTo&&user) setConflict(checkConflict(vFrom,vTo,user,data));
+    if(vFrom&&vTo&&user) setConflict(checkConflict(vFrom,vTo,user,bookedVacations,rules));
     else setConflict(null);
-  },[vFrom,vTo,user]);
+  },[vFrom,vTo,user,bookedVacations,rules]);
 
-  function updateData(d){setData(d);saveData(d);}
-  function addSent(item){const nd={...data,sentItems:[...(data.sentItems||[]),item]};updateData(nd);}
-  function handleSuccess(msg,item){if(item)addSent(item);setSuccessMsg(msg);setView("success");}
+  if(antragId) return <ApprovalPage antragId={antragId}/>;
 
-  if(!user) return <Login employees={data.employees} onLogin={u=>{setUser(u);setView("dashboard");}}/>;
+  if(loading) return (
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:"'DM Sans',sans-serif"}}>
+      <Logo size={1.3}/>
+      <div style={{marginTop:24,fontSize:14,color:C.textLight}}>Lädt...</div>
+    </div>
+  );
 
-  const mt=data.meldungTypes?.find(m=>m.key===mKey);
-  function getRecips(m){return (m?.recipientIds||[]).map(id=>data.employees.find(e=>e.id===id)).filter(Boolean);}
+  if(!user) return <Login employees={employees} onLogin={u=>{setUser(u);setView("dashboard");}}/>;
+
+  const meldungTypes=DEFAULT_MELDUNGEN;
+  const mt=meldungTypes.find(m=>m.key===mKey);
+  function getRecips(m){return (m?.recipientIds||[]).map(id=>employees.find(e=>e.id===id)).filter(Boolean);}
 
   function canSend(){
     if(!mt) return false;
@@ -675,22 +575,22 @@ export default function App(){
     return true;
   }
 
-  function submitMeldung(){
+  async function submitMeldung(){
     if(!canSend()) return;
-    const recipEmps=mt.multiSelect?[data.employees.find(e=>e.id===mRecip)].filter(Boolean):getRecips(mt);
+    const recipEmps=mt.multiSelect?[employees.find(e=>e.id===mRecip)].filter(Boolean):getRecips(mt);
     const toStr=recipEmps.map(r=>r.name).join(", ");
     const toEmail=recipEmps.map(r=>r.email).join(", ");
-
     let nachricht=mText;
     let label=mt.label;
-
     if(mt.key==="krank"){
       nachricht=`Krankheitszeitraum: ${formatDate(krankVon)} – ${formatDate(krankBis)}${mText?"\n\nHinweis: "+mText:""}`;
       label=`Krankmeldung (${formatDate(krankVon)} – ${formatDate(krankBis)})`;
     }
-
-    sendEmail(user.name,user.role,mt.label,toStr,nachricht,`${label} von ${user.name}`,toEmail,"");
-    handleSuccess(`Deine Meldung wurde weitergeleitet an: ${toStr}.`,{id:Date.now(),employeeId:user.id,type:"meldung",label,text:nachricht,to:toStr,date:new Date().toLocaleDateString("de-DE")});
+    await sendEmail(user.name,user.role,mt.label,toStr,nachricht,`${label} von ${user.name}`,toEmail,"");
+    // In Supabase speichern
+    await db("POST","meldungen",{mitarbeiter_id:user.id,mitarbeiter_name:user.name,typ:label,nachricht,empfaenger:toStr});
+    setSuccessMsg(`Deine Meldung wurde weitergeleitet an: ${toStr}.`);
+    setView("success");
     setMKey(null);setMText("");setMRecip(null);setKrankVon("");setKrankBis("");
   }
 
@@ -703,39 +603,29 @@ export default function App(){
     if(needsApprovalTorsten||needsApprovalRalf){
       const approverName=needsApprovalTorsten?"Torsten May":"Ralf Klukas";
       const approverEmail=needsApprovalTorsten?"torsten.may@klukas-gerueste.de":"ralf.klukas@klukas-gerueste.de";
-
-      const result=await supabase("POST","urlaubsantraege",{
-        mitarbeiter_id:user.id,
-        mitarbeiter_name:user.name,
-        mitarbeiter_rolle:user.role,
-        von:vFrom,
-        bis:vTo,
-        arbeitstage:requestedDays,
-        status:"ausstehend"
+      const result=await db("POST","urlaubsantraege",{
+        mitarbeiter_id:user.id, mitarbeiter_name:user.name,
+        mitarbeiter_rolle:user.role, von:vFrom, bis:vTo,
+        arbeitstage:requestedDays, status:"ausstehend"
       });
-
       if(result&&result.length>0){
         const aid=result[0].id;
         const approvalLink=`https://klukas-portal.vercel.app/?antrag=${aid}`;
-        await sendEmail(
-          user.name,user.role,"Urlaubsantrag",approverName,
+        await sendEmail(user.name,user.role,"Urlaubsantrag",approverName,
           `${user.name} (${user.role}) beantragt Urlaub vom ${formatDate(vFrom)} bis ${formatDate(vTo)} (${requestedDays} Arbeitstage).`,
-          `Urlaubsantrag von ${user.name} – Genehmigung erforderlich`,
-          approverEmail, approvalLink
-        );
-        handleSuccess(
-          `Dein Urlaubsantrag (${formatDate(vFrom)} – ${formatDate(vTo)}, ${requestedDays} Arbeitstage) wurde zur Genehmigung an ${approverName} weitergeleitet. Du erhältst eine Benachrichtigung sobald er entschieden hat.`,
-          {id:Date.now(),employeeId:user.id,type:"urlaub",label:"Urlaubsantrag (ausstehend)",text:`${vFrom} – ${vTo}`,to:approverName,date:new Date().toLocaleDateString("de-DE")}
-        );
+          `Urlaubsantrag von ${user.name} – Genehmigung erforderlich`,approverEmail,approvalLink);
+        setSuccessMsg(`Dein Urlaubsantrag (${formatDate(vFrom)} – ${formatDate(vTo)}, ${requestedDays} Arbeitstage) wurde zur Genehmigung an ${approverName} weitergeleitet. Du erhältst eine Benachrichtigung sobald er entschieden hat.`);
+        setView("success");
       }
     }
     setVFrom("");setVTo("");
   }
 
-  const allVacs=getAllVacs(data);
   const today=new Date().toISOString().split("T")[0];
-  const upcoming=allVacs.filter(v=>v.to>=today).slice(0,5);
-  const myItems=(data.sentItems||[]).filter(s=>s.employeeId===user.id).slice(-3).reverse();
+  const upcoming=bookedVacations.filter(v=>v.bis>=today).slice(0,5);
+  const usedDays=bookedVacations.filter(v=>v.mitarbeiter_id===user.id).reduce((sum,v)=>sum+countWorkdays(v.von,v.bis),0);
+  const totalDays=user.urlaubstage||30;
+  const remainingDays=totalDays-usedDays;
   const requestedDays=vFrom&&vTo&&vFrom<=vTo?countWorkdays(vFrom,vTo):0;
   const needsApproval=APPROVAL_ROLES_TORSTEN.includes(user.role)||APPROVAL_ROLES_RALF.includes(user.role);
   const approverName=APPROVAL_ROLES_TORSTEN.includes(user.role)?"Torsten May":"Ralf Klukas";
@@ -747,14 +637,14 @@ export default function App(){
         <div style={{padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <Logo size={0.7}/>
           <div style={{display:"flex",gap:6}}>
-            {user.isAdmin&&<button onClick={()=>setView("admin")} style={{background:C.redLight,border:`1px solid ${C.redBorder}`,borderRadius:6,padding:"5px 10px",color:C.red,fontSize:11,cursor:"pointer",fontWeight:600}}>⚙ Admin</button>}
+            {user.is_admin&&<button onClick={()=>setView("admin")} style={{background:C.redLight,border:`1px solid ${C.redBorder}`,borderRadius:6,padding:"5px 10px",color:C.red,fontSize:11,cursor:"pointer",fontWeight:600}}>⚙ Admin</button>}
             <button onClick={()=>{setUser(null);setView("dashboard");}} style={S.btnGhost}>Abmelden</button>
           </div>
         </div>
         <div style={{padding:"8px 16px 12px",display:"flex",alignItems:"center",gap:10,borderTop:`1px solid ${C.border}`}}>
           <Avatar emp={user} size={34}/>
           <div>
-            <div style={{fontWeight:700,fontSize:13,color:C.text}}>Hallo, {user.firstName}!</div>
+            <div style={{fontWeight:700,fontSize:13,color:C.text}}>Hallo, {user.first_name}!</div>
             <div style={{fontSize:10,color:roleColor(user.role)}}>{user.role}</div>
           </div>
         </div>
@@ -783,19 +673,6 @@ export default function App(){
                 <div style={{marginLeft:"auto",color:C.red,fontSize:22}}>›</div>
               </button>
             ))}
-            {myItems.length>0&&<div style={{marginTop:24}}>
-              <div style={{fontSize:11,fontWeight:700,color:C.textLight,marginBottom:10,textTransform:"uppercase",letterSpacing:"0.5px"}}>Deine letzten Meldungen</div>
-              {myItems.map((item,i)=>(
-                <div key={i} style={{...S.card,borderRadius:10,padding:"10px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{fontSize:20}}>{item.type==="urlaub"?"🏖️":"📋"}</div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:12,fontWeight:600,color:C.text}}>{item.label}</div>
-                    <div style={{fontSize:10,color:C.textLight}}>An: {item.to} · {item.date}</div>
-                  </div>
-                  <div style={{fontSize:10,background:C.greenLight,color:C.green,padding:"3px 8px",borderRadius:20,fontWeight:600,border:`1px solid ${C.greenBorder}`}}>✓ Gesendet</div>
-                </div>
-              ))}
-            </div>}
           </div>
         )}
 
@@ -806,7 +683,7 @@ export default function App(){
             <div style={{fontSize:19,fontWeight:800,marginBottom:2,color:C.text}}>Meldung senden</div>
             <div style={{fontSize:12,color:C.textLight,marginBottom:18}}>Was möchtest du melden?</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:18}}>
-              {(data.meldungTypes||[]).map(t=>(
+              {meldungTypes.map(t=>(
                 <button key={t.key} onClick={()=>{setMKey(t.key);setMRecip(null);setMText("");setKrankVon("");setKrankBis("");}}
                   style={{background:mKey===t.key?C.redLight:C.white,border:mKey===t.key?`1.5px solid ${C.red}`:`1px solid ${C.border}`,borderRadius:12,padding:"16px 8px",cursor:"pointer",textAlign:"center",transition:"all 0.15s",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
                   <div style={{fontSize:24,marginBottom:6}}>{t.icon}</div>
@@ -825,11 +702,11 @@ export default function App(){
                       {getRecips(mt).map(r=>(
                         <button key={r.id} onClick={()=>setMRecip(r.id)}
                           style={{background:mRecip===r.id?C.redLight:C.white,border:mRecip===r.id?`1.5px solid ${C.red}`:`1px solid ${C.border}`,borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:11,color:mRecip===r.id?C.red:C.textMid,fontWeight:mRecip===r.id?600:400}}>
-                          {r.firstName} {r.name.split(", ")[0]}
+                          {r.first_name} {r.name.split(", ")[0]}
                         </button>
                       ))}
                     </div>
-                    {mt.coordinatorId&&(()=>{const c=data.employees.find(e=>e.id===mt.coordinatorId);return c?<div style={{marginTop:8,color:C.textLight,fontSize:10}}>Koordiniert über: <span style={{color:C.red,fontWeight:600}}>{c.name}</span></div>:null;})()}
+                    {mt.coordinatorId&&(()=>{const c=employees.find(e=>e.id===mt.coordinatorId);return c?<div style={{marginTop:8,color:C.textLight,fontSize:10}}>Koordiniert über: <span style={{color:C.red,fontWeight:600}}>{c.name}</span></div>:null;})()}
                   </div>
                 ):(
                   <div style={{color:C.textMid}}>📨 Wird gesendet an: <span style={{color:C.red,fontWeight:600}}>{getRecips(mt).map(r=>r.name).join(", ")}</span></div>
@@ -837,7 +714,6 @@ export default function App(){
               </div>
             )}
 
-            {/* Krankmeldung: Datumsauswahl */}
             {mt?.key==="krank"&&(
               <div style={{marginBottom:14}}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
@@ -856,14 +732,9 @@ export default function App(){
               </div>
             )}
 
-            {mt?.key!=="krank"&&(
-              <div/>
-            )}
-
             <textarea value={mText} onChange={e=>setMText(e.target.value)}
               placeholder={mt?.key==="krank"?"Optionaler Hinweis (z.B. Arztbesuch geplant)...":"Beschreibe dein Anliegen..."} rows={mt?.key==="krank"?2:4}
               style={{...S.input,resize:"none",fontSize:13,padding:"10px 12px"}}/>
-
             <button onClick={submitMeldung} disabled={!canSend()}
               style={{...S.btn,marginTop:10,background:canSend()?`linear-gradient(135deg,${C.red},#b91c1c)`:"#e5e7eb",color:canSend()?"#fff":C.textLight,cursor:canSend()?"pointer":"not-allowed"}}>
               Meldung absenden ›
@@ -880,11 +751,20 @@ export default function App(){
 
             {needsApproval&&(
               <div style={{...S.card,background:C.amberLight,border:"1px solid #fcd34d",marginBottom:14,padding:"10px 14px",fontSize:12,color:"#92400e"}}>
-                ⏳ Dein Antrag wird zuerst von <strong>{approverName}</strong> geprüft. Du bekommst eine E-Mail nach der Entscheidung.
+                ⏳ Dein Antrag wird zuerst von <strong>{approverName}</strong> geprüft.
               </div>
             )}
 
-            <VacationDaysBar emp={user} data={data}/>
+            {/* Urlaubstage Balken */}
+            <div style={{...S.card,marginBottom:14,padding:"12px 14px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <div style={{fontSize:12,fontWeight:700,color:C.text}}>Urlaubstage {new Date().getFullYear()}</div>
+                <div style={{fontSize:12,fontWeight:700,color:remainingDays<=5?C.red:remainingDays<=10?C.amber:C.green}}>{remainingDays} von {totalDays} Tagen übrig</div>
+              </div>
+              <div style={{background:C.bg,borderRadius:6,height:8,overflow:"hidden"}}>
+                <div style={{background:remainingDays<=5?C.red:remainingDays<=10?C.amber:C.green,height:"100%",width:`${Math.min(100,(usedDays/totalDays)*100)}%`,borderRadius:6}}/>
+              </div>
+            </div>
 
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
               {[["VON",vFrom,setVFrom],["BIS",vTo,setVTo]].map(([l,val,setter])=>(
@@ -912,17 +792,14 @@ export default function App(){
 
             <Calendar year={calYear} month={calMonth}
               onChangeMonth={delta=>{let m=calMonth+delta,y=calYear;if(m<0){m=11;y--;}if(m>11){m=0;y++;}setCalMonth(m);setCalYear(y);}}
-              vacFrom={vFrom} vacTo={vTo} conflict={!!conflict} user={user} data={data}/>
+              vacFrom={vFrom} vacTo={vTo} conflict={!!conflict} user={user} bookedVacations={bookedVacations} rules={rules}/>
 
             {upcoming.length>0&&<div style={{marginTop:14,marginBottom:14}}>
               <div style={{fontSize:11,fontWeight:700,color:C.textLight,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.5px"}}>Aktuelle Urlaubsbuchungen</div>
               {upcoming.map((v,i)=>(
                 <div key={i} style={{...S.card,borderRadius:8,padding:"8px 12px",marginBottom:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div>
-                    <div style={{fontSize:11,fontWeight:600,color:C.text}}>{v.name}</div>
-                    <div style={{fontSize:10,color:C.textLight}}>{v.role}{v.fixed?" · Pflicht":""}</div>
-                  </div>
-                  <div style={{fontSize:10,color:C.amber,fontWeight:600}}>{formatDate(v.from)} – {formatDate(v.to)}</div>
+                  <div><div style={{fontSize:11,fontWeight:600,color:C.text}}>{v.name}</div><div style={{fontSize:10,color:C.textLight}}>{v.role}</div></div>
+                  <div style={{fontSize:10,color:C.amber,fontWeight:600}}>{formatDate(v.von)} – {formatDate(v.bis)}</div>
                 </div>
               ))}
             </div>}
@@ -935,7 +812,9 @@ export default function App(){
         )}
 
         {/* ADMIN */}
-        {view==="admin"&&user.isAdmin&&<Admin data={data} updateData={updateData} setView={setView}/>}
+        {view==="admin"&&user.is_admin&&(
+          <Admin employees={employees} setEmployees={setEmployees} rules={rules} setRules={setRules} setView={setView} meldungen={DEFAULT_MELDUNGEN}/>
+        )}
 
         {/* SUCCESS */}
         {view==="success"&&(
