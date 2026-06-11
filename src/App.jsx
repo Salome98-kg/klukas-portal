@@ -528,6 +528,9 @@ export default function App(){
   const [conflict,setConflict]=useState(null);
   const [calYear,setCalYear]=useState(new Date().getFullYear());
   const [calMonth,setCalMonth]=useState(new Date().getMonth());
+  const [kalYear2,setKalYear2]=useState(new Date().getFullYear());
+  const [kalMonth2,setKalMonth2]=useState(new Date().getMonth());
+  const [kalFilterRole,setKalFilterRole]=useState("alle");
 
   // Genehmigungsseite
   const urlParams=new URLSearchParams(window.location.search);
@@ -660,6 +663,7 @@ export default function App(){
             {[
               {icon:"📋",title:"Meldung senden",desc:"Arbeitsmittel · Gespräch · Krankheit",to:"meldung"},
               {icon:"🏖️",title:"Urlaub beantragen",desc:"Kalender & Verfügbarkeit prüfen",to:"urlaub"},
+              {icon:"📅",title:"Urlaubskalender",desc:"Wer hat wann Urlaub – Übersicht für alle",to:"kalenderuebersicht"},
             ].map((item,i)=>(
               <button key={i} onClick={()=>setView(item.to)}
                 style={{width:"100%",...S.card,padding:"18px 20px",marginBottom:12,display:"flex",alignItems:"center",gap:16,cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}
@@ -814,6 +818,107 @@ export default function App(){
         {/* ADMIN */}
         {view==="admin"&&user.is_admin&&(
           <Admin employees={employees} setEmployees={setEmployees} rules={rules} setRules={setRules} setView={setView} meldungen={DEFAULT_MELDUNGEN}/>
+        )}
+
+        {/* URLAUBSKALENDER */}
+        {view==="kalenderuebersicht"&&(
+          <div>
+            <button onClick={()=>setView("dashboard")} style={S.back}>‹ Zurück</button>
+            <div style={{fontSize:19,fontWeight:800,marginBottom:2,color:C.text}}>📅 Urlaubskalender</div>
+            <div style={{fontSize:12,color:C.textLight,marginBottom:16}}>Wer hat wann Urlaub – nur zur Ansicht</div>
+
+            {(()=>{
+              const [filterRole, setFilterRole] = [kalFilterRole, setKalFilterRole];
+              const today = new Date();
+              const year = kalYear2;
+              const month = kalMonth2;
+              const monthName = new Date(year, month).toLocaleDateString("de-DE", {month:"long", year:"numeric"});
+              const daysInMonth = new Date(year, month+1, 0).getDate();
+              const firstDay = (new Date(year, month, 1).getDay()+6)%7;
+
+              const filtered = filterRole === "alle"
+                ? bookedVacations
+                : bookedVacations.filter(v => {
+                    const emp = employees.find(e => e.id === v.mitarbeiter_id);
+                    return emp?.role === filterRole;
+                  });
+
+              const activeThisMonth = filtered.filter(v => {
+                const from = v.von; const to = v.bis;
+                const mStart = `${year}-${String(month+1).padStart(2,"0")}-01`;
+                const mEnd = `${year}-${String(month+1).padStart(2,"0")}-${String(daysInMonth).padStart(2,"0")}`;
+                return from <= mEnd && to >= mStart;
+              });
+
+              return (
+                <div>
+                  {/* Monatsnavigation */}
+                  <div style={{...S.card, padding:"10px 14px", marginBottom:12, display:"flex", alignItems:"center", justifyContent:"space-between"}}>
+                    <button onClick={()=>{let m=kalMonth2-1,y=kalYear2;if(m<0){m=11;y--;}setKalMonth2(m);setKalYear2(y);}} style={{background:"none",border:"none",color:C.red,fontSize:22,cursor:"pointer"}}>‹</button>
+                    <div style={{fontWeight:700,fontSize:14,color:C.text}}>{monthName}</div>
+                    <button onClick={()=>{let m=kalMonth2+1,y=kalYear2;if(m>11){m=0;y++;}setKalMonth2(m);setKalYear2(y);}} style={{background:"none",border:"none",color:C.red,fontSize:22,cursor:"pointer"}}>›</button>
+                  </div>
+
+                  {/* Rollenfilter */}
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+                    {["alle",...ROLES].map(r=>(
+                      <button key={r} onClick={()=>setKalFilterRole(r)}
+                        style={{background:filterRole===r?C.redLight:C.white,border:filterRole===r?`1.5px solid ${C.red}`:`1px solid ${C.border}`,borderRadius:20,padding:"4px 12px",cursor:"pointer",fontSize:11,fontWeight:filterRole===r?700:400,color:filterRole===r?C.red:C.textLight}}>
+                        {r==="alle"?"Alle":r}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Kalender */}
+                  <div style={{...S.card, padding:14, marginBottom:14}}>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:6}}>
+                      {["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=><div key={d} style={{fontSize:9,color:C.textLight,textAlign:"center",fontWeight:700}}>{d}</div>)}
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
+                      {Array.from({length:firstDay}).map((_,i)=><div key={"e"+i}/>)}
+                      {Array.from({length:daysInMonth}).map((_,i)=>{
+                        const n = i+1;
+                        const ds = `${year}-${String(month+1).padStart(2,"0")}-${String(n).padStart(2,"0")}`;
+                        const count = activeThisMonth.filter(v=>v.von<=ds&&v.bis>=ds).length;
+                        const isToday = ds===new Date().toISOString().split("T")[0];
+                        return (
+                          <div key={n} style={{aspectRatio:"1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",borderRadius:4,fontSize:10,fontWeight:600,background:count>0?"#dbeafe":isToday?C.redLight:"transparent",border:`1px solid ${count>0?"#3b82f6":isToday?C.red:C.border}`,color:count>0?"#1d4ed8":isToday?C.red:C.textLight,position:"relative"}}>
+                            {n}
+                            {count>0&&<div style={{fontSize:8,background:"#3b82f6",color:"#fff",borderRadius:10,padding:"0 3px",marginTop:1}}>{count}</div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Liste */}
+                  {activeThisMonth.length===0?(
+                    <div style={{textAlign:"center",color:C.textLight,fontSize:13,padding:24}}>Kein Urlaub in diesem Monat</div>
+                  ):(
+                    <div>
+                      <div style={{fontSize:11,fontWeight:700,color:C.textLight,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.5px"}}>Urlaube diesen Monat</div>
+                      {activeThisMonth.sort((a,b)=>a.von.localeCompare(b.von)).map((v,i)=>{
+                        const emp = employees.find(e=>e.id===v.mitarbeiter_id);
+                        const c = roleColor(emp?.role||"Monteur");
+                        return (
+                          <div key={i} style={{...S.card,borderRadius:10,padding:"10px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:12,borderLeft:`3px solid ${c}`}}>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:12,fontWeight:700,color:C.text}}>{v.name}</div>
+                              <div style={{fontSize:10,color:c,fontWeight:600}}>{emp?.role}</div>
+                            </div>
+                            <div style={{textAlign:"right"}}>
+                              <div style={{fontSize:11,fontWeight:600,color:C.amber}}>{formatDate(v.von)} – {formatDate(v.bis)}</div>
+                              <div style={{fontSize:10,color:C.textLight}}>{countWorkdays(v.von,v.bis)} Arbeitstage</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
         )}
 
         {/* SUCCESS */}
