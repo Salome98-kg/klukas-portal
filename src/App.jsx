@@ -91,7 +91,7 @@ function checkConflict(from,to,emp,bookedVacations,rules){
   if(sb&&from<=sb.end&&to>=sb.start) return {msg:"Sommerblock: Urlaub nur für eingeplante Gruppen möglich."};
   const requestedDays=countWorkdays(from,to);
   function maxOv(fn){let m=0;let dd=new Date(from);while(dd<=new Date(to)){const ds=dd.toISOString().split("T")[0];const c=bookedVacations.filter(v=>v.mitarbeiter_id!==emp.id&&fn(v)&&dateInRange(ds,v.von,v.bis)).length;if(c>m)m=c;dd.setDate(dd.getDate()+1);}return m;}
-  if(emp.lkw_gross&&maxOv(v=>v.lkw_gross)>=rules.maxLkwGross) return {msg:`Bereits ${rules.maxLkwGross} LKW-Groß-Fahrer im Urlaub.`};
+  if(emp.lkw_gross&&maxOv(v=>v.lkw_gross)>=rules.maxLkwGross) return {msg:`Bereits ${rules.maxLkwGross} LKW-Groß-Fahrer im Urlaub – du wärst der ${rules.maxLkwGross+1}. Bitte wähle einen anderen Zeitraum.`};
   if(emp.lkw_klein&&!emp.lkw_gross&&maxOv(v=>v.lkw_klein&&!v.lkw_gross)>=rules.maxLkwKlein) return {msg:`Bereits ${rules.maxLkwKlein} LKW-Klein-Fahrer im Urlaub.`};
   if(emp.role==="Vorarbeiter"&&maxOv(v=>v.role==="Vorarbeiter")>=rules.maxVorarbeiter) return {msg:`Bereits ${rules.maxVorarbeiter} Vorarbeiter im Urlaub.`};
   return null;
@@ -849,15 +849,34 @@ export default function App(){
                 }
               }}/>
 
-            {upcoming.length>0&&<div style={{marginTop:14,marginBottom:14}}>
-              <div style={{fontSize:11,fontWeight:700,color:C.textLight,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.5px"}}>Aktuelle Urlaubsbuchungen</div>
-              {upcoming.map((v,i)=>(
-                <div key={i} style={{...S.card,borderRadius:8,padding:"8px 12px",marginBottom:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div><div style={{fontSize:11,fontWeight:600,color:C.text}}>{v.name}</div><div style={{fontSize:10,color:C.textLight}}>{v.role}</div></div>
-                  <div style={{fontSize:10,color:C.amber,fontWeight:600}}>{formatDate(v.von)} – {formatDate(v.bis)}</div>
+            {(()=>{
+              const mStart=`${calYear}-${String(calMonth+1).padStart(2,"0")}-01`;
+              const mEnd=`${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(new Date(calYear,calMonth+1,0).getDate()).padStart(2,"0")}`;
+              const thisMonth=bookedVacations.filter(v=>v.von<=mEnd&&v.bis>=mStart);
+              if(thisMonth.length===0) return null;
+              return (
+                <div style={{marginTop:14,marginBottom:14}}>
+                  <div style={{fontSize:11,fontWeight:700,color:C.textLight,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.5px"}}>
+                    Urlaube im {new Date(calYear,calMonth).toLocaleDateString("de-DE",{month:"long",year:"numeric"})}
+                  </div>
+                  {thisMonth.sort((a,b)=>a.von.localeCompare(b.von)).map((v,i)=>{
+                    const isMe=v.mitarbeiter_id===user.id;
+                    const c=roleColor(v.role||"Monteur");
+                    return (
+                      <div key={i} style={{...S.card,borderRadius:8,padding:"8px 12px",marginBottom:6,display:"flex",justifyContent:"space-between",alignItems:"center",borderLeft:`3px solid ${isMe?C.red:c}`,background:isMe?C.redLight:C.white}}>
+                        <div>
+                          <div style={{fontSize:11,fontWeight:600,color:C.text}}>
+                            {v.name}{isMe&&<span style={{fontSize:9,color:C.red,marginLeft:6,fontWeight:700}}>● Du</span>}
+                          </div>
+                          <div style={{fontSize:10,color:c,fontWeight:600}}>{v.role}</div>
+                        </div>
+                        <div style={{fontSize:10,color:C.amber,fontWeight:600}}>{formatDate(v.von)} – {formatDate(v.bis)}</div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>}
+              );
+            })()}
 
             <button onClick={submitUrlaub} disabled={!vFrom||!vTo||vFrom>vTo||!!conflict}
               style={{...S.btn,background:(!vFrom||!vTo||vFrom>vTo||!!conflict)?"#e5e7eb":`linear-gradient(135deg,${C.red},#b91c1c)`,color:(!vFrom||!vTo||vFrom>vTo||!!conflict)?C.textLight:"#fff"}}>
