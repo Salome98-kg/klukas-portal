@@ -303,8 +303,13 @@ function Calendar({year,month,onChangeMonth,vacFrom,vacTo,conflict,user,bookedVa
         <button onClick={()=>onChangeMonth(1)} style={{background:"none",border:"none",color:C.red,fontSize:20,cursor:"pointer"}}>›</button>
       </div>
       {vacFrom&&!vacTo&&(
-        <div style={{fontSize:10,color:C.amber,textAlign:"center",marginBottom:6,fontWeight:600}}>
-          Start: {formatDate(vacFrom)} – jetzt Endtag wählen
+        <div style={{fontSize:10,color:C.amber,textAlign:"center",marginBottom:6,fontWeight:600,background:C.amberLight,borderRadius:6,padding:"4px 8px"}}>
+          ✓ Start: {formatDate(vacFrom)} – tippe jetzt den Endtag an
+        </div>
+      )}
+      {vacFrom&&vacTo&&(
+        <div style={{fontSize:10,color:C.green,textAlign:"center",marginBottom:6,fontWeight:600,background:C.greenLight,borderRadius:6,padding:"4px 8px"}}>
+          ✓ {formatDate(vacFrom)} – {formatDate(vacTo)} ausgewählt
         </div>
       )}
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:4}}>
@@ -558,12 +563,31 @@ export default function App(){
   // Daten laden
   useEffect(()=>{
     async function loadAll(){
-      const [emps,vacs]=await Promise.all([
+      const [emps,vacs,antraege]=await Promise.all([
         db("GET","mitarbeiter",null,"?order=id&select=*"),
         db("GET","gebuchte_urlaube",null,"?select=*"),
+        db("GET","urlaubsantraege",null,"?status=eq.genehmigt&select=*"),
       ]);
       if(emps) setEmployees(emps);
-      if(vacs) setBookedVacations(vacs);
+      // Merge gebuchte_urlaube + genehmigte urlaubsantraege
+      const booked = vacs||[];
+      const fromAntraege = (antraege||[]).map(a=>({
+        id: a.id,
+        mitarbeiter_id: a.mitarbeiter_id,
+        name: a.mitarbeiter_name,
+        role: a.mitarbeiter_rolle,
+        lkw_gross: emps?.find(e=>e.id===a.mitarbeiter_id)?.lkw_gross||false,
+        lkw_klein: emps?.find(e=>e.id===a.mitarbeiter_id)?.lkw_klein||false,
+        von: a.von,
+        bis: a.bis,
+      }));
+      // Combine and deduplicate by mitarbeiter_id + von + bis
+      const combined = [...booked];
+      for(const a of fromAntraege){
+        const exists = combined.some(b=>b.mitarbeiter_id===a.mitarbeiter_id&&b.von===a.von&&b.bis===a.bis);
+        if(!exists) combined.push(a);
+      }
+      setBookedVacations(combined);
       setLoading(false);
     }
     loadAll();
