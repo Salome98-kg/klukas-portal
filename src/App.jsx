@@ -531,6 +531,7 @@ export default function App(){
   const [kalYear2,setKalYear2]=useState(new Date().getFullYear());
   const [kalMonth2,setKalMonth2]=useState(new Date().getMonth());
   const [kalFilterRole,setKalFilterRole]=useState("alle");
+  const [kalSelectedDay,setKalSelectedDay]=useState(null);
 
   // Genehmigungsseite
   const urlParams=new URLSearchParams(window.location.search);
@@ -881,8 +882,10 @@ export default function App(){
                         const ds = `${year}-${String(month+1).padStart(2,"0")}-${String(n).padStart(2,"0")}`;
                         const dayVacs = activeThisMonth.filter(v=>v.von<=ds&&v.bis>=ds);
                         const isToday = ds===new Date().toISOString().split("T")[0];
+                        const isSelected = kalSelectedDay === ds;
                         return (
-                          <div key={n} style={{aspectRatio:"1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",borderRadius:4,fontSize:10,fontWeight:600,background:dayVacs.length>0?"#f8f9ff":isToday?C.redLight:"transparent",border:`1px solid ${dayVacs.length>0?"#e0e4ff":isToday?C.red:C.border}`,color:isToday?C.red:C.textLight,position:"relative",padding:"2px 1px"}}>
+                          <div key={n} onClick={()=>setKalSelectedDay(isSelected?null:ds)}
+                            style={{aspectRatio:"1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",borderRadius:4,fontSize:10,fontWeight:600,background:isSelected?C.redLight:dayVacs.length>0?"#f8f9ff":isToday?"#fff8f8":"transparent",border:`1px solid ${isSelected?C.red:dayVacs.length>0?"#e0e4ff":isToday?C.red:C.border}`,color:isSelected?C.red:isToday?C.red:C.textLight,position:"relative",padding:"2px 1px",cursor:dayVacs.length>0?"pointer":"default",transition:"all 0.1s"}}>
                             <span style={{fontSize:10,fontWeight:600,lineHeight:1}}>{n}</span>
                             {dayVacs.length>0&&(
                               <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:2,marginTop:2,maxWidth:"90%"}}>
@@ -900,27 +903,73 @@ export default function App(){
                   </div>
 
                   {/* Liste */}
+                  {/* Selected day detail */}
+                  {kalSelectedDay&&(()=>{
+                    const dayVacsSelected = filtered.filter(v=>v.von<=kalSelectedDay&&v.bis>=kalSelectedDay);
+                    const roleOrder=["GF","Bauleiter","Büro","Lagerist","Vorarbeiter","Monteur","Azubi"];
+                    const sorted = [...dayVacsSelected].sort((a,b)=>{
+                      const empA=employees.find(e=>e.id===a.mitarbeiter_id);
+                      const empB=employees.find(e=>e.id===b.mitarbeiter_id);
+                      return roleOrder.indexOf(empA?.role||"")-roleOrder.indexOf(empB?.role||"");
+                    });
+                    return (
+                      <div style={{...S.card,marginBottom:14,border:`1.5px solid ${C.red}`,background:C.redLight}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                          <div style={{fontSize:13,fontWeight:700,color:C.red}}>📅 {formatDate(kalSelectedDay)}</div>
+                          <div style={{fontSize:11,color:C.textLight}}>{sorted.length} Person{sorted.length!==1?"en":""} im Urlaub</div>
+                        </div>
+                        {sorted.length===0?(
+                          <div style={{fontSize:12,color:C.textLight}}>Kein Urlaub an diesem Tag</div>
+                        ):sorted.map((v,i)=>{
+                          const emp=employees.find(e=>e.id===v.mitarbeiter_id);
+                          const c=roleColor(emp?.role||"Monteur");
+                          return (
+                            <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0",borderTop:i>0?`1px solid ${C.border}`:"none"}}>
+                              <div style={{width:10,height:10,borderRadius:"50%",background:c,flexShrink:0}}/>
+                              <div style={{flex:1}}>
+                                <span style={{fontSize:12,fontWeight:700,color:C.text}}>{v.name}</span>
+                                <span style={{fontSize:10,color:c,fontWeight:600,marginLeft:8}}>{emp?.role}</span>
+                              </div>
+                              <div style={{fontSize:10,color:C.textLight}}>{formatDate(v.von)} – {formatDate(v.bis)}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+
                   {activeThisMonth.length===0?(
                     <div style={{textAlign:"center",color:C.textLight,fontSize:13,padding:24}}>Kein Urlaub in diesem Monat</div>
                   ):(
                     <div>
-                      <div style={{fontSize:11,fontWeight:700,color:C.textLight,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.5px"}}>Urlaube diesen Monat</div>
-                      {activeThisMonth.sort((a,b)=>a.von.localeCompare(b.von)).map((v,i)=>{
-                        const emp = employees.find(e=>e.id===v.mitarbeiter_id);
-                        const c = roleColor(emp?.role||"Monteur");
-                        return (
-                          <div key={i} style={{...S.card,borderRadius:10,padding:"10px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:12,borderLeft:`3px solid ${c}`}}>
-                            <div style={{flex:1}}>
-                              <div style={{fontSize:12,fontWeight:700,color:C.text}}>{v.name}</div>
-                              <div style={{fontSize:10,color:c,fontWeight:600}}>{emp?.role}</div>
+                      <div style={{fontSize:11,fontWeight:700,color:C.textLight,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.5px"}}>
+                        Alle Urlaube diesen Monat
+                      </div>
+                      {(()=>{
+                        const roleOrder=["GF","Bauleiter","Büro","Lagerist","Vorarbeiter","Monteur","Azubi"];
+                        return [...activeThisMonth].sort((a,b)=>{
+                          const empA=employees.find(e=>e.id===a.mitarbeiter_id);
+                          const empB=employees.find(e=>e.id===b.mitarbeiter_id);
+                          const roleCompare=roleOrder.indexOf(empA?.role||"")-roleOrder.indexOf(empB?.role||"");
+                          if(roleCompare!==0) return roleCompare;
+                          return a.von.localeCompare(b.von);
+                        }).map((v,i)=>{
+                          const emp=employees.find(e=>e.id===v.mitarbeiter_id);
+                          const c=roleColor(emp?.role||"Monteur");
+                          return (
+                            <div key={i} style={{...S.card,borderRadius:10,padding:"10px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:12,borderLeft:`3px solid ${c}`}}>
+                              <div style={{flex:1}}>
+                                <div style={{fontSize:12,fontWeight:700,color:C.text}}>{v.name}</div>
+                                <div style={{fontSize:10,color:c,fontWeight:600}}>{emp?.role}</div>
+                              </div>
+                              <div style={{textAlign:"right"}}>
+                                <div style={{fontSize:11,fontWeight:600,color:C.amber}}>{formatDate(v.von)} – {formatDate(v.bis)}</div>
+                                <div style={{fontSize:10,color:C.textLight}}>{countWorkdays(v.von,v.bis)} Arbeitstage</div>
+                              </div>
                             </div>
-                            <div style={{textAlign:"right"}}>
-                              <div style={{fontSize:11,fontWeight:600,color:C.amber}}>{formatDate(v.von)} – {formatDate(v.bis)}</div>
-                              <div style={{fontSize:10,color:C.textLight}}>{countWorkdays(v.von,v.bis)} Arbeitstage</div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        });
+                      })()}
                     </div>
                   )}
                 </div>
