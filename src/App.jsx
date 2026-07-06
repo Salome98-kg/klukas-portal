@@ -38,7 +38,7 @@ async function sendEmail(vonName, vonRolle, meldungArt, anName, nachricht, betre
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function roleColor(role) {
-  return { GF:"#dc2626", Bauleiter:"#d97706", Büro:"#2563eb", Lagerist:"#7c3aed", Vorarbeiter:"#059669", Monteur:"#4f46e5", Azubi:"#6b7280" }[role] || "#6b7280";
+  return { GF:"#dc2626", Bauleiter:"#d97706", Büro:"#ec4899", Lagerist:"#7c3aed", Vorarbeiter:"#059669", Monteur:"#3b82f6", Azubi:"#6b7280" }[role] || "#6b7280";
 }
 function getInitials(name) {
   const p = name.split(", ");
@@ -879,12 +879,20 @@ export default function App(){
                       {Array.from({length:daysInMonth}).map((_,i)=>{
                         const n = i+1;
                         const ds = `${year}-${String(month+1).padStart(2,"0")}-${String(n).padStart(2,"0")}`;
-                        const count = activeThisMonth.filter(v=>v.von<=ds&&v.bis>=ds).length;
+                        const dayVacs = activeThisMonth.filter(v=>v.von<=ds&&v.bis>=ds);
                         const isToday = ds===new Date().toISOString().split("T")[0];
                         return (
-                          <div key={n} style={{aspectRatio:"1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",borderRadius:4,fontSize:10,fontWeight:600,background:count>0?"#dbeafe":isToday?C.redLight:"transparent",border:`1px solid ${count>0?"#3b82f6":isToday?C.red:C.border}`,color:count>0?"#1d4ed8":isToday?C.red:C.textLight,position:"relative"}}>
-                            {n}
-                            {count>0&&<div style={{fontSize:8,background:"#3b82f6",color:"#fff",borderRadius:10,padding:"0 3px",marginTop:1}}>{count}</div>}
+                          <div key={n} style={{aspectRatio:"1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",borderRadius:4,fontSize:10,fontWeight:600,background:dayVacs.length>0?"#f8f9ff":isToday?C.redLight:"transparent",border:`1px solid ${dayVacs.length>0?"#e0e4ff":isToday?C.red:C.border}`,color:isToday?C.red:C.textLight,position:"relative",padding:"2px 1px"}}>
+                            <span style={{fontSize:10,fontWeight:600,lineHeight:1}}>{n}</span>
+                            {dayVacs.length>0&&(
+                              <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:2,marginTop:2,maxWidth:"90%"}}>
+                                {dayVacs.slice(0,6).map((v,vi)=>{
+                                  const emp=employees.find(e=>e.id===v.mitarbeiter_id);
+                                  return <div key={vi} style={{width:7,height:7,borderRadius:"50%",background:roleColor(emp?.role||"Monteur"),flexShrink:0}}/>;
+                                })}
+                                {dayVacs.length>6&&<div style={{width:7,height:7,borderRadius:"50%",background:"#aaa",flexShrink:0}}/>}
+                              </div>
+                            )}
                           </div>
                         );
                       })}
