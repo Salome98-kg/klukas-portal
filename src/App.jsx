@@ -274,36 +274,57 @@ function Login({employees,onLogin}){
 }
 
 // ─── KALENDER ─────────────────────────────────────────────────────────────────
-function Calendar({year,month,onChangeMonth,vacFrom,vacTo,conflict,user,bookedVacations,rules}){
+function Calendar({year,month,onChangeMonth,vacFrom,vacTo,conflict,user,bookedVacations,rules,onDayClick}){
   const days=new Date(year,month+1,0).getDate();
   const firstDay=(new Date(year,month,1).getDay()+6)%7;
   const monthName=new Date(year,month).toLocaleDateString("de-DE",{month:"long",year:"numeric"});
   function cell(n){
     const ds=`${year}-${String(month+1).padStart(2,"0")}-${String(n).padStart(2,"0")}`;
     const sel=vacFrom&&vacTo&&vacFrom<=ds&&ds<=vacTo;
+    const isFrom=vacFrom===ds; const isTo=vacTo===ds;
     const busy=bookedVacations.some(v=>v.mitarbeiter_id!==user.id&&dateInRange(ds,v.von,v.bis));
     const blk=(rules.blockedMonths||[]).includes(new Date(ds).getMonth())&&(rules.blockedRoles||[]).includes(user.role);
     const sb=rules.summerBlock; const sum=sb&&ds>=sb.start&&ds<=sb.end;
-    if(sel&&conflict) return {bg:C.redLight,bd:`1.5px solid ${C.red}`,c:C.red};
-    if(sel) return {bg:C.greenLight,bd:"1.5px solid #16a34a",c:"#16a34a"};
-    if(blk) return {bg:C.redLight,bd:`1px solid ${C.border}`,c:"#fca5a5"};
-    if(sum) return {bg:"#fefce8",bd:`1px solid ${C.border}`,c:"#a16207"};
-    if(busy) return {bg:"#fffbeb",bd:"1px solid #fcd34d",c:C.textLight};
-    return {bg:"transparent",bd:`1px solid ${C.border}`,c:C.textLight};
+    const isWeekend=new Date(ds).getDay()===0||new Date(ds).getDay()===6;
+    if(sel&&conflict) return {bg:C.redLight,bd:`1.5px solid ${C.red}`,c:C.red,cursor:"pointer"};
+    if(isFrom||isTo) return {bg:"#16a34a",bd:"1.5px solid #16a34a",c:"#fff",cursor:"pointer"};
+    if(sel) return {bg:C.greenLight,bd:"1px solid #86efac",c:"#16a34a",cursor:"pointer"};
+    if(blk) return {bg:C.redLight,bd:`1px solid ${C.border}`,c:"#fca5a5",cursor:"not-allowed"};
+    if(sum) return {bg:"#fefce8",bd:`1px solid ${C.border}`,c:"#a16207",cursor:"pointer"};
+    if(busy) return {bg:"#fffbeb",bd:"1px solid #fcd34d",c:C.textLight,cursor:"pointer"};
+    if(isWeekend) return {bg:"#f9fafb",bd:`1px solid ${C.border}`,c:"#d1d5db",cursor:"default"};
+    return {bg:"transparent",bd:`1px solid ${C.border}`,c:C.textLight,cursor:"pointer"};
   }
   return (
     <div style={{...S.card,padding:14}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
         <button onClick={()=>onChangeMonth(-1)} style={{background:"none",border:"none",color:C.red,fontSize:20,cursor:"pointer"}}>‹</button>
         <div style={{fontWeight:700,fontSize:13,color:C.text}}>{monthName}</div>
         <button onClick={()=>onChangeMonth(1)} style={{background:"none",border:"none",color:C.red,fontSize:20,cursor:"pointer"}}>›</button>
       </div>
+      {vacFrom&&!vacTo&&(
+        <div style={{fontSize:10,color:C.amber,textAlign:"center",marginBottom:6,fontWeight:600}}>
+          Start: {formatDate(vacFrom)} – jetzt Endtag wählen
+        </div>
+      )}
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:4}}>
         {["Mo","Di","Mi","Do","Fr","Sa","So"].map(d=><div key={d} style={{fontSize:9,color:C.textLight,textAlign:"center",fontWeight:700}}>{d}</div>)}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
         {Array.from({length:firstDay}).map((_,i)=><div key={`e${i}`}/>)}
-        {Array.from({length:days}).map((_,i)=>{const s=cell(i+1);return <div key={i+1} style={{aspectRatio:"1",display:"flex",alignItems:"center",justifyContent:"center",borderRadius:4,fontSize:10,fontWeight:600,background:s.bg,border:s.bd,color:s.c}}>{i+1}</div>;})}
+        {Array.from({length:days}).map((_,i)=>{
+          const n=i+1;
+          const s=cell(n);
+          const ds=`${year}-${String(month+1).padStart(2,"0")}-${String(n).padStart(2,"0")}`;
+          const isWeekend=new Date(ds).getDay()===0||new Date(ds).getDay()===6;
+          return (
+            <div key={n}
+              onClick={()=>!isWeekend&&onDayClick&&onDayClick(ds)}
+              style={{aspectRatio:"1",display:"flex",alignItems:"center",justifyContent:"center",borderRadius:4,fontSize:10,fontWeight:600,background:s.bg,border:s.bd,color:s.c,cursor:s.cursor,transition:"all 0.1s",userSelect:"none"}}>
+              {n}
+            </div>
+          );
+        })}
       </div>
       <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10}}>
         {[["#16a34a","Dein Antrag"],["#d97706","Belegt"],["#dc2626","Nicht möglich"]].map(([c,l])=>(
@@ -789,7 +810,20 @@ export default function App(){
 
             <Calendar year={calYear} month={calMonth}
               onChangeMonth={delta=>{let m=calMonth+delta,y=calYear;if(m<0){m=11;y--;}if(m>11){m=0;y++;}setCalMonth(m);setCalYear(y);}}
-              vacFrom={vFrom} vacTo={vTo} conflict={!!conflict} user={user} bookedVacations={bookedVacations} rules={rules}/>
+              vacFrom={vFrom} vacTo={vTo} conflict={!!conflict} user={user} bookedVacations={bookedVacations} rules={rules}
+              onDayClick={(ds)=>{
+                if(!vFrom||(vFrom&&vTo)){
+                  setVFrom(ds);
+                  setVTo("");
+                } else {
+                  if(ds<vFrom){
+                    setVTo(vFrom);
+                    setVFrom(ds);
+                  } else {
+                    setVTo(ds);
+                  }
+                }
+              }}/>
 
             {upcoming.length>0&&<div style={{marginTop:14,marginBottom:14}}>
               <div style={{fontSize:11,fontWeight:700,color:C.textLight,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.5px"}}>Aktuelle Urlaubsbuchungen</div>
