@@ -90,9 +90,6 @@ function checkConflict(from,to,emp,bookedVacations,rules){
   const sb=rules.summerBlock;
   if(sb&&from<=sb.end&&to>=sb.start) return {msg:"Sommerblock: Urlaub nur für eingeplante Gruppen möglich."};
   const requestedDays=countWorkdays(from,to);
-  const usedDays=bookedVacations.filter(v=>v.mitarbeiter_id===emp.id).reduce((sum,v)=>sum+countWorkdays(v.von,v.bis),0);
-  const remaining=(emp.urlaubstage||30)-usedDays;
-  if(requestedDays>remaining) return {msg:`Nicht genug Urlaubstage. Du hast noch ${remaining} Tage übrig, beantragst aber ${requestedDays} Tage.`};
   function maxOv(fn){let m=0;let dd=new Date(from);while(dd<=new Date(to)){const ds=dd.toISOString().split("T")[0];const c=bookedVacations.filter(v=>v.mitarbeiter_id!==emp.id&&fn(v)&&dateInRange(ds,v.von,v.bis)).length;if(c>m)m=c;dd.setDate(dd.getDate()+1);}return m;}
   if(emp.lkw_gross&&maxOv(v=>v.lkw_gross)>=rules.maxLkwGross) return {msg:`Bereits ${rules.maxLkwGross} LKW-Groß-Fahrer im Urlaub.`};
   if(emp.lkw_klein&&!emp.lkw_gross&&maxOv(v=>v.lkw_klein&&!v.lkw_gross)>=rules.maxLkwKlein) return {msg:`Bereits ${rules.maxLkwKlein} LKW-Klein-Fahrer im Urlaub.`};
@@ -628,8 +625,6 @@ export default function App(){
   const today=new Date().toISOString().split("T")[0];
   const upcoming=bookedVacations.filter(v=>v.bis>=today).slice(0,5);
   const usedDays=bookedVacations.filter(v=>v.mitarbeiter_id===user.id).reduce((sum,v)=>sum+countWorkdays(v.von,v.bis),0);
-  const totalDays=user.urlaubstage||30;
-  const remainingDays=totalDays-usedDays;
   const requestedDays=vFrom&&vTo&&vFrom<=vTo?countWorkdays(vFrom,vTo):0;
   const needsApproval=APPROVAL_ROLES_TORSTEN.includes(user.role)||APPROVAL_ROLES_RALF.includes(user.role);
   const approverName=APPROVAL_ROLES_TORSTEN.includes(user.role)?"Torsten May":"Ralf Klukas";
@@ -762,12 +757,9 @@ export default function App(){
 
             {/* Urlaubstage Balken */}
             <div style={{...S.card,marginBottom:14,padding:"12px 14px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                <div style={{fontSize:12,fontWeight:700,color:C.text}}>Urlaubstage {new Date().getFullYear()}</div>
-                <div style={{fontSize:12,fontWeight:700,color:remainingDays<=5?C.red:remainingDays<=10?C.amber:C.green}}>{remainingDays} von {totalDays} Tagen übrig</div>
-              </div>
-              <div style={{background:C.bg,borderRadius:6,height:8,overflow:"hidden"}}>
-                <div style={{background:remainingDays<=5?C.red:remainingDays<=10?C.amber:C.green,height:"100%",width:`${Math.min(100,(usedDays/totalDays)*100)}%`,borderRadius:6}}/>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{fontSize:12,fontWeight:700,color:C.text}}>Urlaub {new Date().getFullYear()}</div>
+                <div style={{fontSize:12,fontWeight:700,color:C.amber}}>Bereits beantragt: {usedDays} Tage</div>
               </div>
             </div>
 
