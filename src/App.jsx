@@ -78,6 +78,8 @@ function saveRules(r){try{localStorage.setItem(STORAGE_KEY_RULES,JSON.stringify(
 // ─── CONFLICT CHECK ───────────────────────────────────────────────────────────
 function checkConflict(from,to,emp,bookedVacations,rules){
   if(!from||!to||from>to) return null;
+  const maxDate=`${new Date().getFullYear()+1}-12-31`;
+  if(to>maxDate) return {msg:`Urlaub kann nur bis zum 31.12.${new Date().getFullYear()+1} beantragt werden.`};
   let d=new Date(from); const end=new Date(to);
   while(d<=end){
     if((rules.blockedMonths||[]).includes(d.getMonth())){
@@ -670,7 +672,7 @@ export default function App(){
 
   const today=new Date().toISOString().split("T")[0];
   const upcoming=bookedVacations.filter(v=>v.bis>=today).slice(0,5);
-  const usedDays=bookedVacations.filter(v=>v.mitarbeiter_id===user.id).reduce((sum,v)=>sum+countWorkdays(v.von,v.bis),0);
+  const usedDays=bookedVacations.filter(v=>v.mitarbeiter_id===user.id&&v.von&&v.von.slice(0,4)===String(new Date().getFullYear())).reduce((sum,v)=>sum+countWorkdays(v.von,v.bis),0);
   const requestedDays=vFrom&&vTo&&vFrom<=vTo?countWorkdays(vFrom,vTo):0;
   const needsApproval=APPROVAL_ROLES_TORSTEN.includes(user.role)||APPROVAL_ROLES_RALF.includes(user.role);
   const approverName=APPROVAL_ROLES_TORSTEN.includes(user.role)?"Torsten May":"Ralf Klukas";
