@@ -231,7 +231,19 @@ function Login({employees,onLogin}){
   const [pw,setPw]=useState("");
   const [err,setErr]=useState("");
   const filtered=employees.filter(e=>search.length>1&&e.name.toLowerCase().includes(search.toLowerCase()));
-  function doLogin(){if(pw===sel.password){onLogin(sel);}else{setErr("Falsches Passwort. Bitte erneut versuchen.");}}
+  async function doLogin(){
+    setErr("");
+    try{
+      const res=await fetch(`${SUPABASE_URL}/functions/v1/login`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},
+        body:JSON.stringify({id:sel.id,password:pw})
+      });
+      if(!res.ok){setErr("Falsches Passwort. Bitte erneut versuchen.");return;}
+      const data=await res.json();
+      onLogin(data);
+    }catch(e){setErr("Verbindungsfehler. Bitte erneut versuchen.");}
+  }
   return (
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"'DM Sans','Segoe UI',sans-serif"}}>
       <div style={{marginBottom:32}}><Logo size={1.3}/></div>
@@ -351,7 +363,8 @@ function EmpForm({emp:init,onSave,onCancel}){
       <div style={{fontSize:12,fontWeight:700,color:C.red,marginBottom:12}}>{emp.id?"Bearbeiten":"Neuer Mitarbeiter"}</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
         {[["Name (Nachname, Vorname)","name"],["Rufname","first_name"],["E-Mail","email"],["Passwort","password"]].map(([l,k])=>(
-          <div key={k}><label style={S.label}>{l}</label><input value={emp[k]||""} onChange={e=>set(k,e.target.value)} style={{...S.input,fontSize:11,padding:"7px 8px"}}/></div>
+          <div key={k}><label style={S.label}>{l}</label><input value={emp[k]||""} onChange={e=>set(k,e.target.value)} placeholder={k==="password"&&emp.id?"Leer lassen = unverändert":""} style={{...S.input,fontSize:11,padding:"7px 8px"}}/></div>
+        ))}
         ))}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
@@ -395,10 +408,12 @@ function Admin({employees,setEmployees,rules,setRules,setView,meldungen}){
     }
   },[tab]);
 
-  async function saveEmp(emp){
+ async function saveEmp(emp){
     if(emp.id){
-      await db("PATCH","mitarbeiter",emp,`?id=eq.${emp.id}`);
-      setEmployees(prev=>prev.map(e=>e.id===emp.id?emp:e));
+      const payload={...emp};
+      if(!payload.password) delete payload.password;
+      await db("PATCH","mitarbeiter",payload,`?id=eq.${emp.id}`);
+      setEmployees(prev=>prev.map(e=>e.id===emp.id?{...e,...payload}:e));
     } else {
       const nid=Math.max(...employees.map(e=>e.id))+1;
       const newE={...emp,id:nid};
@@ -564,7 +579,7 @@ export default function App(){
   useEffect(()=>{
     async function loadAll(){
       const [emps,vacs,antraege]=await Promise.all([
-        db("GET","mitarbeiter",null,"?order=id&select=*"),
+        db("GET","mitarbeiter_public",null,"?order=id&select=*"),
         db("GET","gebuchte_urlaube",null,"?select=*"),
         db("GET","urlaubsantraege",null,"?status=eq.genehmigt&select=*"),
       ]);
