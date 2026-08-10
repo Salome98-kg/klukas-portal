@@ -365,7 +365,6 @@ function EmpForm({emp:init,onSave,onCancel}){
         {[["Name (Nachname, Vorname)","name"],["Rufname","first_name"],["E-Mail","email"],["Passwort","password"]].map(([l,k])=>(
           <div key={k}><label style={S.label}>{l}</label><input value={emp[k]||""} onChange={e=>set(k,e.target.value)} placeholder={k==="password"&&emp.id?"Leer lassen = unverändert":""} style={{...S.input,fontSize:11,padding:"7px 8px"}}/></div>
         ))}
-        ))}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
         <div><label style={S.label}>Rolle</label>
