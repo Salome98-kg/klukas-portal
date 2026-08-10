@@ -21,9 +21,7 @@ async function db(method, table, data = null, filter = "") {
 
 // ─── EMAILJS ──────────────────────────────────────────────────────────────────
 async function sendEmail(vonName, vonRolle, meldungArt, anName, nachricht, betreff, toEmail="", genehmigungLink="") {
-  const genehmigungButton = genehmigungLink
-    ? `<div style="margin-top:20px;text-align:center;"><a href="${genehmigungLink}" style="background:#dc2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;">Jetzt entscheiden – Genehmigen oder Ablehnen</a></div>`
-    : "";
+  const genehmigungDisplay = genehmigungLink ? "block" : "none";
   try {
     const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
       method: "POST",
@@ -32,7 +30,7 @@ async function sendEmail(vonName, vonRolle, meldungArt, anName, nachricht, betre
         service_id: "service_gxg015l",
         template_id: "template_av4scen",
         user_id: "LNWETx8iRbXRi2zvl",
-        template_params: { betreff, von_name: vonName, von_rolle: vonRolle, meldung_art: meldungArt, an_name: anName, nachricht, to_email: toEmail, genehmigung_button: genehmigungButton }
+        template_params: { betreff, von_name: vonName, von_rolle: vonRolle, meldung_art: meldungArt, an_name: anName, nachricht, to_email: toEmail, genehmigung_link: genehmigungLink, genehmigung_display: genehmigungDisplay }
       })
     });
     console.log("Email status:", response.status);
