@@ -62,8 +62,7 @@ const ROLES = ["GF","Bauleiter","Büro","Lagerist","Vorarbeiter","Monteur","Azub
 
 const DEFAULT_RULES = {
   maxLkwGross:3, maxLkwKlein:1, maxVorarbeiter:2,
-  blockedMonths:[11], blockedRoles:["Monteur","Lagerist","Azubi"],
-  summerBlock:{start:"2027-07-10",end:"2027-08-20"}
+  blockedMonths:[11], blockedRoles:["Monteur","Lagerist","Azubi"]
 };
 
 const DEFAULT_MELDUNGEN = [
@@ -87,8 +86,6 @@ function checkConflict(from,to,emp,bookedVacations,rules){
     }
     d.setDate(d.getDate()+1);
   }
-  const sb=rules.summerBlock;
-  if(sb&&from<=sb.end&&to>=sb.start) return {msg:"Sommerblock: Urlaub nur für eingeplante Gruppen möglich."};
   const requestedDays=countWorkdays(from,to);
   function maxOv(fn){let m=0;let dd=new Date(from);while(dd<=new Date(to)){const ds=dd.toISOString().split("T")[0];const c=bookedVacations.filter(v=>v.mitarbeiter_id!==emp.id&&fn(v)&&dateInRange(ds,v.von,v.bis)).length;if(c>m)m=c;dd.setDate(dd.getDate()+1);}return m;}
   if(emp.lkw_gross&&maxOv(v=>v.lkw_gross)>=rules.maxLkwGross) return {msg:`Bereits ${rules.maxLkwGross} LKW-Groß-Fahrer im Urlaub – du wärst der ${rules.maxLkwGross+1}. Bitte wähle einen anderen Zeitraum.`};
@@ -501,17 +498,7 @@ function Admin({employees,setEmployees,rules,setRules,setView,meldungen}){
               </label>
             ))}
           </div>
-          <div style={{...S.card,marginBottom:12}}>
-            <div style={{fontSize:13,fontWeight:700,marginBottom:14,color:C.text}}>Sommerblock</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              {[["Von","start"],["Bis","end"]].map(([l,k])=>(
-                <div key={k}><label style={S.label}>{l}</label>
-                  <input type="date" value={localRules.summerBlock?.[k]||""} onChange={e=>setLocalRules(p=>({...p,summerBlock:{...p.summerBlock,[k]:e.target.value}}))} style={{...S.input,fontSize:11,padding:"7px 8px"}}/>
-                </div>
-              ))}
-            </div>
-          </div>
-          <button onClick={saveRulesLocal} style={{...S.btn,background:saved?"linear-gradient(135deg,#16a34a,#15803d)":`linear-gradient(135deg,${C.red},#b91c1c)`}}>
+         <button onClick={saveRulesLocal} style={{...S.btn,background:saved?"linear-gradient(135deg,#16a34a,#15803d)":`linear-gradient(135deg,${C.red},#b91c1c)`}}>
             {saved?"✓ Gespeichert!":"Regeln speichern"}
           </button>
         </div>
