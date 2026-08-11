@@ -71,10 +71,17 @@ const DEFAULT_MELDUNGEN = [
   {key:"krank",icon:"🤒",label:"Krankmeldung",desc:"Krankheit melden",recipientIds:[4,3,6],multiSelect:false},
 ];
 
-const STORAGE_KEY_RULES = "klukas_rules_v1";
-function loadRules(){try{const r=localStorage.getItem(STORAGE_KEY_RULES);if(r) return JSON.parse(r);}catch(e){}return DEFAULT_RULES;}
-function saveRules(r){try{localStorage.setItem(STORAGE_KEY_RULES,JSON.stringify(r));}catch(e){}}
-
+async function loadRulesFromDb(){
+  const rows=await db("GET","urlaubsregeln",null,"?id=eq.1&select=*");
+  if(rows&&rows[0]){
+    const r=rows[0];
+    return {maxLkwGross:r.max_lkw_gross,maxLkwKlein:r.max_lkw_klein,maxVorarbeiter:r.max_vorarbeiter,blockedMonths:r.blocked_months||[],blockedRoles:r.blocked_roles||[]};
+  }
+  return DEFAULT_RULES;
+}
+async function saveRulesToDb(r){
+  await db("PATCH","urlaubsregeln",{max_lkw_gross:r.maxLkwGross,max_lkw_klein:r.maxLkwKlein,max_vorarbeiter:r.maxVorarbeiter,blocked_months:r.blockedMonths,blocked_roles:r.blockedRoles},"?id=eq.1");
+}
 // ─── CONFLICT CHECK ───────────────────────────────────────────────────────────
 function checkConflict(from,to,emp,bookedVacations,rules){
   if(!from||!to||from>to) return null;
@@ -428,8 +435,8 @@ function Admin({employees,setEmployees,rules,setRules,setView,meldungen}){
     setEmployees(prev=>prev.filter(e=>e.id!==id));
   }
 
-  function saveRulesLocal(){
-    saveRules(localRules);
+  async function saveRulesLocal(){
+    await saveRulesToDb(localRules);
     setRules(localRules);
     setSaved(true);
     setTimeout(()=>setSaved(false),2000);
@@ -536,11 +543,12 @@ function Admin({employees,setEmployees,rules,setRules,setView,meldungen}){
 export default function App(){
   const [employees,setEmployees]=useState([]);
   const [bookedVacations,setBookedVacations]=useState([]);
-  const [rules,setRules]=useState(loadRules());
+  const [rules,setRules]=useState(DEFAULT_RULES);
   const [loading,setLoading]=useState(true);
   const [user,setUser]=useState(null);
   const [view,setView]=useState("dashboard");
   const [successMsg,setSuccessMsg]=useState("");
+  useEffect(()=>{ loadRulesFromDb().then(setRules); },[]);
 
   // Meldung state
   const [mKey,setMKey]=useState(null);
