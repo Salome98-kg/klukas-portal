@@ -158,7 +158,8 @@ function ApprovalPage({antragId}){
     load();
   },[antragId]);
 
-  async function decide(approved){
+async function decide(approved){
+    if(processing) return;
     setProcessing(true);
     const status=approved?"genehmigt":"abgelehnt";
     await db("PATCH","urlaubsantraege",{status,entschieden_am:new Date().toISOString()},`?id=eq.${antragId}`);
