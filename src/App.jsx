@@ -398,7 +398,7 @@ function EmpForm({emp:init,onSave,onCancel}){
   );
 }
 
-function Admin({employees,setEmployees,rules,setRules,setView,meldungen}){
+function Admin({employees,setEmployees,rules,setRules,setView,meldungen,user}){
   const [tab,setTab]=useState("employees");
   const [editEmp,setEditEmp]=useState(null);
   const [newEmp,setNewEmp]=useState(null);
@@ -406,6 +406,23 @@ function Admin({employees,setEmployees,rules,setRules,setView,meldungen}){
   const [saved,setSaved]=useState(false);
   const [antraege,setAntraege]=useState([]);
   const [loading,setLoading]=useState(false);
+  const [adminPw,setAdminPw]=useState("");
+  const [unlocked,setUnlocked]=useState(false);
+  const [pwErr,setPwErr]=useState("");
+
+  if(!unlocked){
+    return (
+      <div style={{minHeight:"60vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
+        <div style={{width:"100%",maxWidth:320,...S.card,padding:24}}>
+          <div style={{fontSize:14,fontWeight:700,marginBottom:12,color:C.text}}>Admin-Bereich</div>
+          <label style={S.label}>Dein Passwort zur Bestätigung</label>
+          <input type="password" value={adminPw} onChange={e=>{setAdminPw(e.target.value);setPwErr("");}} onKeyDown={e=>e.key==="Enter"&&setUnlocked(true)} style={S.input} autoFocus/>
+          {pwErr&&<div style={{fontSize:11,color:C.red,marginTop:6}}>{pwErr}</div>}
+          <button onClick={()=>setUnlocked(true)} style={{...S.btn,marginTop:12}}>Bestätigen</button>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(()=>{
     if(tab==="antraege"){
@@ -415,26 +432,30 @@ function Admin({employees,setEmployees,rules,setRules,setView,meldungen}){
   },[tab]);
 
  async function saveEmp(emp){
-    if(emp.id){
-      const payload={...emp};
-      if(!payload.password) delete payload.password;
-      await db("PATCH","mitarbeiter",payload,`?id=eq.${emp.id}`);
-      setEmployees(prev=>prev.map(e=>e.id===emp.id?{...e,...payload}:e));
-    } else {
-      const nid=Math.max(...employees.map(e=>e.id))+1;
-      const newE={...emp,id:nid};
-      await db("POST","mitarbeiter",newE);
-      setEmployees(prev=>[...prev,newE]);
-    }
+    const payload=emp.id?emp:{...emp,id:Math.max(...employees.map(e=>e.id))+1};
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/admin-write`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},
+      body:JSON.stringify({adminId:user.id,adminPassword:adminPw,action:"save",emp:payload})
+    });
+    if(!res.ok){ setUnlocked(false); setAdminPw(""); setPwErr("Passwort falsch oder keine Berechtigung – bitte erneut eingeben."); return; }
+    const data=await res.json();
+    const savedRow=Array.isArray(data)?data[0]:data;
+    if(emp.id) setEmployees(prev=>prev.map(e=>e.id===emp.id?{...e,...savedRow}:e));
+    else setEmployees(prev=>[...prev,savedRow]);
     setEditEmp(null);setNewEmp(null);
   }
 
   async function delEmp(id){
     if(!confirm("Mitarbeiter wirklich löschen?")) return;
-    await db("DELETE","mitarbeiter",null,`?id=eq.${id}`);
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/admin-write`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},
+      body:JSON.stringify({adminId:user.id,adminPassword:adminPw,action:"delete",id})
+    });
+    if(!res.ok){ setUnlocked(false); setAdminPw(""); setPwErr("Passwort falsch oder keine Berechtigung – bitte erneut eingeben."); return; }
     setEmployees(prev=>prev.filter(e=>e.id!==id));
   }
-
   async function saveRulesLocal(){
     await saveRulesToDb(localRules);
     setRules(localRules);
@@ -899,7 +920,7 @@ export default function App(){
 
         {/* ADMIN */}
         {view==="admin"&&user.is_admin&&(
-          <Admin employees={employees} setEmployees={setEmployees} rules={rules} setRules={setRules} setView={setView} meldungen={DEFAULT_MELDUNGEN}/>
+          <Admin employees={employees} setEmployees={setEmployees} rules={rules} setRules={setRules} setView={setView} meldungen={DEFAULT_MELDUNGEN} user={user}/>
         )}
 
         {/* URLAUBSKALENDER */}
