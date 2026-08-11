@@ -410,6 +410,13 @@ function Admin({employees,setEmployees,rules,setRules,setView,meldungen,user}){
   const [unlocked,setUnlocked]=useState(false);
   const [pwErr,setPwErr]=useState("");
 
+  useEffect(()=>{
+    if(tab==="antraege"){
+      setLoading(true);
+      db("GET","urlaubsantraege",null,"?order=erstellt_am.desc&select=*").then(r=>{setAntraege(r||[]);setLoading(false);});
+    }
+  },[tab]);
+
   if(!unlocked){
     return (
       <div style={{minHeight:"60vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
@@ -423,13 +430,6 @@ function Admin({employees,setEmployees,rules,setRules,setView,meldungen,user}){
       </div>
     );
   }
-
-  useEffect(()=>{
-    if(tab==="antraege"){
-      setLoading(true);
-      db("GET","urlaubsantraege",null,"?order=erstellt_am.desc&select=*").then(r=>{setAntraege(r||[]);setLoading(false);});
-    }
-  },[tab]);
 
  async function saveEmp(emp){
     const payload=emp.id?emp:{...emp,id:Math.max(...employees.map(e=>e.id))+1};
