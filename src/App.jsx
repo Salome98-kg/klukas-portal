@@ -156,7 +156,7 @@ function ApprovalPage({antragId}){
     async function load(){
       const [a,e]=await Promise.all([
         db("GET","urlaubsantraege",null,`?id=eq.${antragId}&select=*`),
-        db("GET","mitarbeiter",null,"?select=*")
+        db("GET","mitarbeiter_public",null,"?select=*")
       ]);
       if(a&&a.length>0) setAntrag(a[0]);
       if(e) setEmployees(e);
