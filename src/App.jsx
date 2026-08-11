@@ -408,7 +408,19 @@ function Admin({employees,setEmployees,rules,setRules,setView,meldungen,user}){
   const [loading,setLoading]=useState(false);
   const [adminPw,setAdminPw]=useState("");
   const [unlocked,setUnlocked]=useState(false);
-  const [pwErr,setPwErr]=useState("");
+const [pwErr,setPwErr]=useState("");
+
+  async function checkAdminPw(){
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/login`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},
+      body:JSON.stringify({id:user.id,password:adminPw})
+    });
+    if(!res.ok){ setPwErr("Falsches Passwort."); return; }
+    const data=await res.json();
+    if(!data.is_admin){ setPwErr("Kein Admin-Zugang."); return; }
+    setUnlocked(true);
+  }
 
   useEffect(()=>{
     if(tab==="antraege"){
@@ -423,9 +435,9 @@ function Admin({employees,setEmployees,rules,setRules,setView,meldungen,user}){
         <div style={{width:"100%",maxWidth:320,...S.card,padding:24}}>
           <div style={{fontSize:14,fontWeight:700,marginBottom:12,color:C.text}}>Admin-Bereich</div>
           <label style={S.label}>Dein Passwort zur Bestätigung</label>
-          <input type="password" value={adminPw} onChange={e=>{setAdminPw(e.target.value);setPwErr("");}} onKeyDown={e=>e.key==="Enter"&&setUnlocked(true)} style={S.input} autoFocus/>
+        <input type="password" value={adminPw} onChange={e=>{setAdminPw(e.target.value);setPwErr("");}} onKeyDown={e=>e.key==="Enter"&&checkAdminPw()} style={S.input} autoFocus/>
           {pwErr&&<div style={{fontSize:11,color:C.red,marginTop:6}}>{pwErr}</div>}
-          <button onClick={()=>setUnlocked(true)} style={{...S.btn,marginTop:12}}>Bestätigen</button>
+          <button onClick={checkAdminPw} style={{...S.btn,marginTop:12}}>Bestätigen</button>
         </div>
       </div>
     );
