@@ -443,18 +443,20 @@ const [pwErr,setPwErr]=useState("");
     );
   }
 
- async function saveEmp(emp){
-    const payload=emp.id?emp:{...emp,id:Math.max(...employees.map(e=>e.id))+1};
+  async function saveEmp(emp){
+    const isNew=!emp.id;
+    const payload=isNew?{...emp,id:Math.max(...employees.map(e=>e.id))+1}:emp;
     const res=await fetch(`${SUPABASE_URL}/functions/v1/admin-write`,{
       method:"POST",
       headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`},
-      body:JSON.stringify({adminId:user.id,adminPassword:adminPw,action:"save",emp:payload})
+      body:JSON.stringify({adminId:user.id,adminPassword:adminPw,action:"save",emp:payload,isNew})
     });
     if(!res.ok){ setUnlocked(false); setAdminPw(""); setPwErr("Passwort falsch oder keine Berechtigung – bitte erneut eingeben."); return; }
     const data=await res.json();
     const savedRow=Array.isArray(data)?data[0]:data;
-    if(emp.id) setEmployees(prev=>prev.map(e=>e.id===emp.id?{...e,...savedRow}:e));
-    else setEmployees(prev=>[...prev,savedRow]);
+    if(!savedRow){ setPwErr("Speichern fehlgeschlagen."); return; }
+    if(isNew) setEmployees(prev=>[...prev,savedRow]);
+    else setEmployees(prev=>prev.map(e=>e.id===emp.id?{...e,...savedRow}:e));
     setEditEmp(null);setNewEmp(null);
   }
 
