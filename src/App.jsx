@@ -670,11 +670,9 @@ export default function App(){
 
   async function submitMeldung(){
     if(!canSend()) return;
-        const recipEmps=mt.multiSelect?[employees.find(e=>e.id===mRecip)].filter(Boolean)
-      :(mt.key==="krank"&&APPROVAL_ROLES_RALF.includes(user.role))?getRecips({recipientIds:[6]})
-      :getRecips(mt);
-    const toStr=recipEmps.map(r=>r.name).join(", ");
-    const toEmail=recipEmps.map(r=>r.email).join(", ");
+            const recipEmps=mt.multiSelect?[employees.find(e=>e.id===mRecip)].filter(Boolean):getRecips(mt);
+    const toStr=mt.key==="krank"?"iak@klukas-gerueste.de":recipEmps.map(r=>r.name).join(", ");
+    const toEmail=mt.key==="krank"?"iak@klukas-gerueste.de":recipEmps.map(r=>r.email).join(", ");
     let nachricht=mText;
     let label=mt.label;
     if(mt.key==="krank"){
