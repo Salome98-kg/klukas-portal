@@ -124,7 +124,13 @@ const S = {
 
 function Logo({size=1}){
   return (
-    <img src={logoDataUri} alt="Klukas-Gerüste" style={{width:180*size,height:"auto"}}/>
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2*size}}>
+      <img src={logoDataUri} alt="Klukas-Gerüste" style={{width:180*size,height:"auto"}}/>
+      <div style={{textAlign:"center"}}>
+        <div style={{fontSize:13*size,fontWeight:900,color:C.red,letterSpacing:"-0.3px",lineHeight:1.2}}>KLUKAS-GERÜSTE</div>
+        <div style={{fontSize:7*size,color:C.textLight,letterSpacing:"0.8px"}}>GmbH · MITARBEITERPORTAL</div>
+      </div>
+    </div>
   );
 }
 
