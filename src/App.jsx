@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { logoDataUri } from "./logo";
 
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
 const SUPABASE_URL = "https://wgyxwbrjrkyudkdyrqpj.supabase.co";
@@ -123,18 +124,7 @@ const S = {
 
 function Logo({size=1}){
   return (
-    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2*size}}>
-      <svg width={80*size} height={55*size} viewBox="0 0 100 68">
-        <line x1="5" y1="30" x2="45" y2="10" stroke="#111" strokeWidth="4" strokeLinecap="round"/>
-        <line x1="45" y1="10" x2="95" y2="30" stroke="#111" strokeWidth="4" strokeLinecap="round"/>
-        <text x="52" y="62" textAnchor="middle" style={{fontSize:34,fontWeight:900,fill:"#dc2626",fontFamily:"Arial Black,sans-serif"}}>KG</text>
-        <line x1="3" y1="66" x2="97" y2="66" stroke="#111" strokeWidth="4"/>
-      </svg>
-      <div style={{textAlign:"center"}}>
-        <div style={{fontSize:13*size,fontWeight:900,color:C.red,letterSpacing:"-0.3px",lineHeight:1.2}}>KLUKAS-GERÜSTE</div>
-        <div style={{fontSize:7*size,color:C.textLight,letterSpacing:"0.8px"}}>GmbH · MITARBEITERPORTAL</div>
-      </div>
-    </div>
+    <img src={logoDataUri} alt="Klukas-Gerüste" style={{width:180*size,height:"auto"}}/>
   );
 }
 
