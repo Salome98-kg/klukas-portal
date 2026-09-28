@@ -46,9 +46,43 @@ function getInitials(name) {
   return ((p[1]?.[0]||"")+(p[0]?.[0]||"")).toUpperCase();
 }
 function dateInRange(ds,from,to){return ds>=from&&ds<=to;}
+let HOLIDAYS = new Set();
+(function loadHolidays(){
+  const thisYear = new Date().getFullYear();
+  const years = [thisYear, thisYear+1, thisYear+2];
+  Promise.all(years.map(y =>
+    fetch(`https://feiertage-api.de/api/?jahr=${y}&nur_land=SN`).then(r=>r.json()).catch(()=>({}))
+  )).then(results=>{
+    results.forEach(data=>{
+      Object.entries(data).forEach(([name,info])=>{
+        if(name!=="Fronleichnam") HOLIDAYS.add(info.datum);
+      });
+    });
+  });
+})();
+
+let HOLIDAYS = new Set();
+(function loadHolidays(){
+  const thisYear = new Date().getFullYear();
+  const years = [thisYear, thisYear+1, thisYear+2];
+  Promise.all(years.map(y =>
+    fetch(`https://feiertage-api.de/api/?jahr=${y}&nur_land=SN`).then(r=>r.json()).catch(()=>({}))
+  )).then(results=>{
+    results.forEach(data=>{
+      Object.entries(data).forEach(([name,info])=>{
+        if(name!=="Fronleichnam") HOLIDAYS.add(info.datum);
+      });
+    });
+  });
+})();
 function countWorkdays(from, to) {
   let count = 0; let d = new Date(from); const end = new Date(to);
-  while(d<=end){const day=d.getDay();if(day!==0&&day!==6)count++;d.setDate(d.getDate()+1);}
+  while(d<=end){
+    const day=d.getDay();
+    const ds=d.toISOString().split("T")[0];
+    if(day!==0&&day!==6&&!HOLIDAYS.has(ds))count++;
+    d.setDate(d.getDate()+1);
+  }
   return count;
 }
 function formatDate(ds) {
