@@ -60,21 +60,6 @@ let HOLIDAYS = new Set();
     });
   });
 })();
-
-let HOLIDAYS = new Set();
-(function loadHolidays(){
-  const thisYear = new Date().getFullYear();
-  const years = [thisYear, thisYear+1, thisYear+2];
-  Promise.all(years.map(y =>
-    fetch(`https://feiertage-api.de/api/?jahr=${y}&nur_land=SN`).then(r=>r.json()).catch(()=>({}))
-  )).then(results=>{
-    results.forEach(data=>{
-      Object.entries(data).forEach(([name,info])=>{
-        if(name!=="Fronleichnam") HOLIDAYS.add(info.datum);
-      });
-    });
-  });
-})();
 function countWorkdays(from, to) {
   let count = 0; let d = new Date(from); const end = new Date(to);
   while(d<=end){
